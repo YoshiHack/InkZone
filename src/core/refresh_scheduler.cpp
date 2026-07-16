@@ -13,6 +13,8 @@ uint32_t refreshIntervalMs(ActivityLevel activity, uint8_t retry_attempt) {
   switch (activity) {
     case ActivityLevel::kLiveFavoriteGame:
       return 60UL * kSecondMs;
+    case ActivityLevel::kOtherLiveGame:
+      return 2UL * kMinuteMs;
     case ActivityLevel::kGameWithinHour:
       return 5UL * kMinuteMs;
     case ActivityLevel::kGamesToday:
@@ -25,8 +27,8 @@ uint32_t refreshIntervalMs(ActivityLevel activity, uint8_t retry_attempt) {
       return interval > 5UL * kMinuteMs ? 5UL * kMinuteMs : interval;
     }
   }
+
   return 15UL * kMinuteMs;
 }
 
 }  // namespace inkzone
-

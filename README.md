@@ -1,38 +1,63 @@
 # InkZone
 
-InkZone is an ESP32-powered color e-paper sports display. It emphasizes favorite
-teams, selects an appropriate view automatically, and keeps the last useful
-screen visible when no refresh is needed.
+InkZone is an ESP32-powered color e-paper sports display. It emphasizes
+favorite teams, selects an appropriate view automatically, and preserves the
+last useful screen when the network or sports provider is unavailable.
 
-## Firmware components
+## Development environment
 
-- PlatformIO project configured for a generic ESP32 development board
-- Arduino framework selected
-- Serial monitor configured for 115200 baud
-- Minimal boot firmware in `src/main.cpp`
-- Provider-independent sports data models
-- Automatic screen-selection and refresh-scheduling logic
-- Debounced short-press and long-press button interpretation
+- Visual Studio Code
+- PlatformIO IDE extension
+- Arduino framework
+- Generic ESP32 Dev Module target until the exact controller is selected
+- Serial monitor at 115200 baud
 
-See `docs/ARCHITECTURE.md` for the current boundaries and deferred hardware
-decisions.
+Use PlatformIO's **Build** action to compile the firmware. Uploading should wait
+until the exact ESP32 board and USB connection are confirmed.
 
-## Open in VS Code
+## Firmware modules
 
-1. Install the **PlatformIO IDE** extension in VS Code if it is not installed.
-2. Open this folder in VS Code.
-3. Connect the ESP32 with a USB data cable.
-4. Use PlatformIO's **Build**, **Upload**, and **Serial Monitor** actions.
+- `models`: provider-independent teams, games, and standings
+- `device_status`: startup, setup, connection, ready, and offline states
+- `settings`: favorite-team and refresh-interval configuration validation
+- `data_cache`: preservation of the most recent valid sports snapshot
+- `screen_selector`: automatic display priority decisions
+- `refresh_scheduler`: activity-based refresh intervals and retry backoff
+- `button_tracker`: debounced short-press and long-press events
+- `main.cpp`: boot diagnostics and top-level device state
 
-Expected serial output:
+See `docs/ARCHITECTURE.md` for module boundaries.
+
+## Startup behavior
+
+A new configuration contains no favorite teams, so InkZone enters the
+`needs setup` state. A valid saved configuration will proceed to
+`connecting`.
+
+Expected USB serial output begins with:
 
 ```text
 InkZone starting...
-Serial connection ready.
+Chip: ...
+CPU: ... MHz
+Flash: ... bytes
+Configuration: no favorite leagues
+State: needs setup
 ```
 
-## Hardware assumption
+## Hardware cautions
 
-The initial environment uses PlatformIO's `esp32dev` board definition. This is
-only a placeholder until the exact ESP32 board is selected. Do not connect the
-e-paper display until its panel, driver board, voltage, and pinout are confirmed.
+Do not connect a raw e-paper panel directly to the ESP32. Confirm the selected
+panel, driver board, voltage, waveform support, and SPI pinout first. ESP32 pin
+assignments remain intentionally unset until the controller board is known.
+
+Wi-Fi passwords must never be printed to serial output or rendered on the
+display.
+
+
+## Reliability features
+
+- Data health tracking preserves the last valid update and applies progressively longer retry intervals after failures.
+- Data freshness labels distinguish fresh, aging, stale, and unavailable sports data.
+- The display refresh guard blocks overlapping e-paper updates and enforces a configurable minimum delay after each completed refresh.
+- Favorite-team navigation safely wraps through configured teams and handles empty or single-team lists.
