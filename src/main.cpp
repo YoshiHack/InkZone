@@ -2,6 +2,7 @@
 
 #include "inkzone/device_status.h"
 #include "inkzone/settings.h"
+#include "inkzone/sample_nfl_provider.h"
 
 namespace {
 constexpr unsigned long kSerialBaudRate = 115200;
@@ -9,6 +10,7 @@ constexpr unsigned long kHeartbeatIntervalMs = 30000;
 
 inkzone::DeviceStatus deviceStatus;
 inkzone::Settings settings;
+inkzone::SampleNflProvider sampleProvider;
 unsigned long lastHeartbeatMs = 0;
 
 void printBootInformation() {
@@ -20,6 +22,39 @@ void printBootInformation() {
 
 void printDeviceState() {
   Serial.printf("State: %s\n", inkzone::deviceStateName(deviceStatus.state()));
+}
+
+
+void printSampleGame() {
+  constexpr int64_t kSampleStartUnix = 1767225600;
+  constexpr int64_t kSampleEndUnix = kSampleStartUnix + 24 * 60 * 60;
+
+  const inkzone::ProviderResponse response =
+      sampleProvider.fetchGames(inkzone::League::kNfl,
+                                kSampleStartUnix,
+                                kSampleEndUnix);
+
+  Serial.printf("Provider: %s\n", sampleProvider.name());
+  Serial.printf("Provider result: %s\n",
+                inkzone::providerResultName(response.result));
+
+  if (response.result != inkzone::ProviderResult::kSuccess) {
+    Serial.printf("Provider diagnostic: %s\n",
+                  response.diagnostic.c_str());
+    return;
+  }
+
+  for (const inkzone::Game& game : response.games) {
+    Serial.printf("%s %d at %s %d\n",
+                  game.away_team.abbreviation.c_str(),
+                  game.away_score,
+                  game.home_team.abbreviation.c_str(),
+                  game.home_score);
+
+    Serial.printf("Status: %s, clock: %s\n",
+                  game.period.c_str(),
+                  game.clock.c_str());
+  }
 }
 
 void selectStateFromSettings() {
@@ -40,9 +75,9 @@ void setup() {
 
   Serial.println();
   Serial.println("InkZone starting...");
-  printBootInformation();
   selectStateFromSettings();
   printDeviceState();
+  printSampleGame();
 }
 
 void loop() {
