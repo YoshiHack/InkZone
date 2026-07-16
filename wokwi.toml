@@ -2,3 +2,6 @@
 version = 1
 firmware = '.pio/build/esp32dev/firmware-merged.bin'
 elf = '.pio/build/esp32dev/firmware.elf'
+[[net.forward]]
+from = "localhost:8090"
+to = "target:90"

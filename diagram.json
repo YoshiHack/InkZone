@@ -17,6 +17,7 @@
   ],
   "serialMonitor": {
     "display": "always",
+    "convertEol": true,
     "newline": "lf"
   },
   "dependencies": {}
