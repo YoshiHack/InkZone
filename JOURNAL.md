@@ -15,7 +15,7 @@ Today i started working on the base firmware including PIO, i've made placeholde
 
 # July 17: Started testing
 
-I've started using the Wokwi simulator to work on tests, i also adapted a ESPN API to pull NFL games and put them on the screen (it took a while to figure out the SPI configuration). I also added phisical buttons and website buttons to switch between a screen with 1 game (you're Favorite team) and 5 soonest games, I made a screen for if there are no games today
+I've started using the Wokwi simulator to work on tests, i also adapted a ESPN API to pull NFL games and put them on the screen (it took a while to figure out the SPI configuration). I also added phisical buttons and website buttons to switch between a screen with 1 game (you're Favorite team) and 5 soonest games, I made a screen for if there are no games today, i also started working on different leagues
 
 <img src="images/Screenshot%202026-07-17%20085858.png" width="400">
 
