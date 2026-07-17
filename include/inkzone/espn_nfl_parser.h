@@ -4,6 +4,10 @@
 
 namespace inkzone {
 
+ProviderResponse parseEspnScoreboard(
+    const char* json,
+    League league);
+
 ProviderResponse parseEspnNflScoreboard(const char* json);
 
 }  // namespace inkzone

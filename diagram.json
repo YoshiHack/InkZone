@@ -16,6 +16,33 @@
       "top": -120,
       "left": 130,
       "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "previous",
+      "top": 250,
+      "left": -220,
+      "attrs": {
+        "color": "red"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "select",
+      "top": 250,
+      "left": -120,
+      "attrs": {
+        "color": "black"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "next",
+      "top": 250,
+      "left": -20,
+      "attrs": {
+        "color": "green"
+      }
     }
   ],
   "connections": [
@@ -28,7 +55,14 @@
     [ "display:D/C", "esp32:2", "green", [] ],
     [ "display:MOSI", "esp32:23", "green", [] ],
     [ "display:SCK", "esp32:18", "green", [] ],
-    [ "display:LED", "esp32:3V3", "red", [] ]
+    [ "display:LED", "esp32:3V3", "red", [] ],
+
+    [ "previous:1.l", "esp32:32", "green", [] ],
+    [ "previous:2.l", "esp32:GND.2", "black", [] ],
+    [ "select:1.l", "esp32:33", "green", [] ],
+    [ "select:2.l", "esp32:GND.2", "black", [] ],
+    [ "next:1.l", "esp32:25", "green", [] ],
+    [ "next:2.l", "esp32:GND.2", "black", [] ]
   ],
   "serialMonitor": {
     "display": "always",

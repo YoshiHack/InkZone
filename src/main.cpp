@@ -13,10 +13,24 @@
 #include "inkzone/screen_selector.h"
 #include "inkzone/refresh_scheduler.h"
 #include "inkzone/simulator_display.h"
+#include "inkzone/button_tracker.h"
+#include "inkzone/view_mode_controller.h"
 
 namespace {
+const inkzone::Game* findNextFavoriteGame();
 constexpr unsigned long kSerialBaudRate = 115200;
 constexpr unsigned long kHeartbeatIntervalMs = 30000;
+
+constexpr int kPreviousButtonPin = 32;
+constexpr int kSelectButtonPin = 33;
+constexpr int kNextButtonPin = 25;
+constexpr size_t kManualViewCount = 3;
+
+inkzone::ButtonTracker previousButton;
+inkzone::ButtonTracker selectButton;
+inkzone::ButtonTracker nextButton;
+
+inkzone::ViewModeController viewModeController;
 
 inkzone::DeviceStatus deviceStatus;
 inkzone::Settings settings;
@@ -189,7 +203,22 @@ Serial.printf(
 Serial.printf(
     "Automatic screen: %s\n",
     inkzone::screenTypeName(screenDecision.type));
-    inkzone::renderSimulatorScoreboard(response);
+    if (screenDecision.type ==
+        inkzone::ScreenType::kUpcomingFavorite &&
+    screenDecision.featured_game != nullptr) {
+  inkzone::renderSimulatorUpcomingGame(
+      *screenDecision.featured_game);
+} else if (screenDecision.type ==
+           inkzone::ScreenType::kIdleDashboard) {
+  inkzone::renderSimulatorIdleDashboard(
+      findNextFavoriteGame(),
+      nowUnix);
+} else {
+  inkzone::renderSimulatorScoreboard(
+      response,
+      favoriteTeamIds,
+      settings.favorite_team_ids.size());
+}
 
   Serial.printf(
       "Live NFL games received: %u\n",
@@ -263,11 +292,29 @@ bool synchronizeClock() {
   return true;
 }
 
-void connectToWokwiWifi() {
-  Serial.println("Connecting to Wokwi Wi-Fi...");
+void connectToConfiguredWifi() {
+  if (settings.wifi_ssid.empty()) {
+    Serial.println("No saved Wi-Fi network.");
+    Serial.println("Starting InkZone setup network...");
+
+    if (inkzone::startSetupAccessPoint("InkZone-Setup")) {
+      Serial.println("Setup network started: InkZone-Setup");
+      Serial.println("Open http://192.168.4.1:90");
+      settingsWebServer.begin();
+    } else {
+      Serial.println("Unable to start setup network");
+    }
+
+    return;
+  }
+
+  Serial.println("Connecting to saved Wi-Fi...");
 
   const inkzone::WifiConnectResult result =
-      inkzone::connectToWifi("Wokwi-GUEST", "", 10000);
+      inkzone::connectToWifi(
+          settings.wifi_ssid.c_str(),
+          settings.wifi_password.c_str(),
+          10000);
 
   Serial.printf(
       "Wi-Fi result: %s\n",
@@ -276,7 +323,135 @@ void connectToWokwiWifi() {
   if (result == inkzone::WifiConnectResult::kSuccess) {
     synchronizeClock();
     settingsWebServer.begin();
+    return;
   }
+
+  Serial.println("Saved Wi-Fi failed.");
+  Serial.println("Starting InkZone setup network...");
+
+  if (inkzone::startSetupAccessPoint("InkZone-Setup")) {
+    Serial.println("Setup network started: InkZone-Setup");
+    Serial.println("Open http://192.168.4.1:90");
+    settingsWebServer.begin();
+  } else {
+    Serial.println("Unable to start setup network");
+  }
+}
+
+bool isFavoriteTeam(
+    const inkzone::Team& team) {
+  for (const std::string& favorite :
+       settings.favorite_team_ids) {
+    if (team.id == favorite ||
+        team.abbreviation == favorite) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const inkzone::Game* findNextFavoriteGame() {
+  const inkzone::Game* nextGame = nullptr;
+
+  for (const inkzone::Game& game :
+       cachedNflResponse.games) {
+    const bool isFavorite =
+        isFavoriteTeam(game.home_team) ||
+        isFavoriteTeam(game.away_team);
+
+    if (!isFavorite ||
+        game.status != inkzone::GameStatus::kScheduled) {
+      continue;
+    }
+
+    if (nextGame == nullptr ||
+        game.scheduled_start_unix <
+            nextGame->scheduled_start_unix) {
+      nextGame = &game;
+    }
+  }
+
+  return nextGame;
+}
+
+void renderManualView() {
+  if (cachedNflResponse.games.empty()) {
+    return;
+  }
+
+  const std::string* favoriteTeamIds =
+      settings.favorite_team_ids.empty()
+          ? nullptr
+          : settings.favorite_team_ids.data();
+
+  const size_t selectedView =
+      viewModeController.selectedView();
+
+  const inkzone::Game* nextGame =
+      findNextFavoriteGame();
+
+  if (selectedView == 1 && nextGame != nullptr) {
+    inkzone::renderSimulatorUpcomingGame(*nextGame);
+    inkzone::renderSimulatorModeLabel("MANUAL");
+    return;
+  }
+
+  if (selectedView == 2) {
+    inkzone::renderSimulatorIdleDashboard(
+        nextGame,
+        static_cast<int64_t>(time(nullptr)));
+    inkzone::renderSimulatorModeLabel("MANUAL");
+    return;
+  }
+
+  inkzone::renderSimulatorScoreboard(
+      cachedNflResponse,
+      favoriteTeamIds,
+      settings.favorite_team_ids.size());
+  inkzone::renderSimulatorModeLabel("MANUAL");
+}
+
+void handleButtons(unsigned long nowMs) {
+  const inkzone::ButtonEvent previousEvent =
+      previousButton.update(
+          digitalRead(kPreviousButtonPin) == LOW,
+          nowMs);
+
+  const inkzone::ButtonEvent selectEvent =
+      selectButton.update(
+          digitalRead(kSelectButtonPin) == LOW,
+          nowMs);
+
+  const inkzone::ButtonEvent nextEvent =
+      nextButton.update(
+          digitalRead(kNextButtonPin) == LOW,
+          nowMs);
+
+  if (previousEvent == inkzone::ButtonEvent::kShortPress) {
+    viewModeController.previous(
+        kManualViewCount,
+        nowMs);
+
+    Serial.println("Button: previous");
+    renderManualView();
+  }
+
+  if (nextEvent == inkzone::ButtonEvent::kShortPress) {
+    viewModeController.next(
+        kManualViewCount,
+        nowMs);
+
+    Serial.println("Button: next");
+    renderManualView();
+  }
+
+  if (selectEvent == inkzone::ButtonEvent::kShortPress) {
+    viewModeController.enterAutomaticMode();
+    Serial.println("Button: automatic mode");
+  }
+
+  viewModeController.update(nowMs);
 }
 
 void selectStateFromSettings() {
@@ -294,6 +469,9 @@ void selectStateFromSettings() {
 void setup() {
   Serial.begin(kSerialBaudRate);
   delay(500);
+  pinMode(kPreviousButtonPin, INPUT_PULLUP);
+pinMode(kSelectButtonPin, INPUT_PULLUP);
+pinMode(kNextButtonPin, INPUT_PULLUP);
 
   Serial.println();
   Serial.println("InkZone starting...");
@@ -303,7 +481,7 @@ void setup() {
 
 Serial.printf("Saved settings: %s\n",
               settingsLoaded ? "loaded" : "not found");
-  connectToWokwiWifi();
+  connectToConfiguredWifi();
   printLiveNflScoreboard();
   lastNflUpdateMs = millis();
   selectStateFromSettings();
@@ -313,6 +491,49 @@ Serial.printf("Saved settings: %s\n",
 void loop() {
   settingsWebServer.handleClient();
   const unsigned long nowMs = millis();
+  handleButtons(nowMs);
+  const inkzone::WebsiteViewCommand websiteCommand =
+    settingsWebServer.takeViewCommand();
+
+if (websiteCommand ==
+    inkzone::WebsiteViewCommand::kPrevious) {
+  viewModeController.previous(
+      kManualViewCount,
+      nowMs);
+
+  renderManualView();
+  Serial.println("Website: previous view");
+}
+
+if (websiteCommand ==
+    inkzone::WebsiteViewCommand::kNext) {
+  viewModeController.next(
+      kManualViewCount,
+      nowMs);
+
+  renderManualView();
+  Serial.println("Website: next view");
+}
+
+if (websiteCommand ==
+    inkzone::WebsiteViewCommand::kAutomatic) {
+  viewModeController.enterAutomaticMode();
+
+  if (!cachedNflResponse.games.empty()) {
+    const std::string* favoriteTeamIds =
+        settings.favorite_team_ids.empty()
+            ? nullptr
+            : settings.favorite_team_ids.data();
+
+    inkzone::renderSimulatorScoreboard(
+        cachedNflResponse,
+        favoriteTeamIds,
+        settings.favorite_team_ids.size());
+        inkzone::renderSimulatorModeLabel("AUTO");
+  }
+
+  Serial.println("Website: automatic view");
+}
   unsigned long nflRefreshIntervalMs =
     inkzone::refreshIntervalMs(currentActivity);
 

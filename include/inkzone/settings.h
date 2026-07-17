@@ -20,13 +20,14 @@ enum class SettingsError {
 
 struct Settings {
   std::string timezone = "UTC";
+  std::string wifi_ssid;
+  std::string wifi_password;
   std::vector<League> favorite_leagues;
   std::vector<std::string> favorite_team_ids;
   uint32_t live_refresh_seconds = 60;
   uint32_t idle_refresh_minutes = 120;
   bool high_contrast = true;
 };
-
 SettingsError validateSettings(const Settings& settings);
 const char* settingsErrorName(SettingsError error);
 

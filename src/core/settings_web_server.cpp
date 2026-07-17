@@ -1,7 +1,9 @@
 #include "inkzone/settings_web_server.h"
+#include "inkzone/settings_storage.h"
 
 #include <Arduino.h>
-#include "inkzone/settings_storage.h"
+#include <WiFi.h>
+
 
 namespace inkzone {
 namespace {
@@ -65,14 +67,45 @@ const char kSettingsPage[] = R"html(
       background: #064e3b;
       border-radius: 8px;
     }
+    
+        .view-controls {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #374151;
+    }
+
+    .view-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .view-buttons form {
+      margin: 0;
+    }
+
+    .view-buttons button {
+      margin-top: 0;
+      background: #2563eb;
+    }
   </style>
 </head>
 <body>
   <main>
     <h1>InkZone Settings</h1>
-    <p class="status">InkZone is connected to Wi-Fi.</p>
-
+    <p class="status">%NETWORK_STATUS%</p>
     <form method="post" action="/save">
+                <label for="wifi_ssid">Wi-Fi network</label>
+      <input id="wifi_ssid"
+             name="wifi_ssid"
+             list="wifi_networks"
+             maxlength="32"
+             value="%WIFI_SSID%"
+             placeholder="Select or type a network name">
+
+      <datalist id="wifi_networks">
+        %WIFI_NETWORK_OPTIONS%
+      </datalist>
       <label for="timezone">Timezone</label>
       <select id="timezone" name="timezone">
         <option value="America/New_York" %TZ_EASTERN%>Eastern</option>  
@@ -98,6 +131,29 @@ const char kSettingsPage[] = R"html(
 
       <button type="submit">Save settings</button>
     </form>
+    <section class="view-controls">
+  <h2>Display controls</h2>
+
+  <div class="view-buttons">
+    <form method="post" action="/view">
+      <button name="action" value="previous" type="submit">
+        Previous
+      </button>
+    </form>
+
+    <form method="post" action="/view">
+      <button name="action" value="automatic" type="submit">
+        Auto
+      </button>
+    </form>
+
+    <form method="post" action="/view">
+      <button name="action" value="next" type="submit">
+        Next
+      </button>
+    </form>
+  </div>
+</section>
     <form action="/reset" method="POST"
       onsubmit="return confirm('Reset all saved InkZone settings?');">
   <button type="submit" class="reset-button">
@@ -125,6 +181,39 @@ const char kSavedPage[] = R"html(
 </html>
 )html";
 
+String buildWiFiNetworkOptions(const std::string& selectedSsid) {
+  String options;
+
+  const int networkCount = WiFi.scanNetworks();
+
+  if (networkCount <= 0) {
+    return "<option value=\"\">No networks found</option>";
+  }
+
+  for (int index = 0; index < networkCount; ++index) {
+    const String ssid = WiFi.SSID(index);
+
+    if (ssid.isEmpty()) {
+      continue;
+    }
+
+    options += "<option value=\"";
+    options += ssid;
+    options += "\"";
+
+    if (ssid == selectedSsid.c_str()) {
+      options += " selected";
+    }
+
+    options += ">";
+    options += ssid;
+    options += "</option>";
+  }
+
+  WiFi.scanDelete();
+  return options;
+}
+
 }  // namespace
 
 SettingsWebServer::SettingsWebServer(Settings& settings,
@@ -141,8 +230,12 @@ void SettingsWebServer::begin() {
     handleSave();
   });
 
-  server_.on("/reset", HTTP_POST, [this]() {
+server_.on("/reset", HTTP_POST, [this]() {
   handleReset();
+});
+
+server_.on("/view", HTTP_POST, [this]() {
+  handleViewCommand();
 });
 
   server_.onNotFound([this]() {
@@ -189,10 +282,23 @@ void SettingsWebServer::handleHome() {
           ? ""
           : settings_.favorite_team_ids.front().c_str();
 
+  page.replace("%WIFI_SSID%", settings_.wifi_ssid.c_str()); 
+  page.replace(
+    "%WIFI_NETWORK_OPTIONS%",
+    buildWiFiNetworkOptions(settings_.wifi_ssid));       
   page.replace("%TEAM%", team);
   page.replace(
       "%INTERVAL%",
       String(settings_.live_refresh_seconds));
+
+  const bool connectedToWifi =
+    WiFi.status() == WL_CONNECTED;
+
+page.replace(
+    "%NETWORK_STATUS%",
+    connectedToWifi
+        ? "InkZone is connected to Wi-Fi."
+        : "Setup mode: choose your home Wi-Fi network.");
 
   server_.send(200, "text/html", page);
 }
@@ -200,11 +306,23 @@ void SettingsWebServer::handleHome() {
 void SettingsWebServer::handleSave() {
   String timezone = server_.arg("timezone");
   String team = server_.arg("team");
+  String wifiSsid = server_.arg("wifi_ssid");
+String wifiPassword = server_.arg("wifi_password");
   const unsigned long interval =
       server_.arg("interval").toInt();
 
   team.trim();
   team.toUpperCase();
+
+  wifiSsid.trim();
+
+if (!wifiSsid.isEmpty()) {
+  settings_.wifi_ssid = wifiSsid.c_str();
+}
+
+if (!wifiPassword.isEmpty()) {
+  settings_.wifi_password = wifiPassword.c_str();
+}
 
   settings_.timezone = timezone.c_str();
 
@@ -245,6 +363,35 @@ void SettingsWebServer::handleSave() {
 
   delay(1000);
 ESP.restart();
+}
+
+WebsiteViewCommand
+SettingsWebServer::takeViewCommand() {
+  const WebsiteViewCommand command =
+      pending_view_command_;
+
+  pending_view_command_ =
+      WebsiteViewCommand::kNone;
+
+  return command;
+}
+
+void SettingsWebServer::handleViewCommand() {
+  const String action = server_.arg("action");
+
+  if (action == "previous") {
+    pending_view_command_ =
+        WebsiteViewCommand::kPrevious;
+  } else if (action == "next") {
+    pending_view_command_ =
+        WebsiteViewCommand::kNext;
+  } else if (action == "automatic") {
+    pending_view_command_ =
+        WebsiteViewCommand::kAutomatic;
+  }
+
+  server_.sendHeader("Location", "/");
+  server_.send(303, "text/plain", "");
 }
 
 void SettingsWebServer::handleReset() {

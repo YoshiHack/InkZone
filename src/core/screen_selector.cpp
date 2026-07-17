@@ -92,7 +92,19 @@ ScreenDecision chooseAutomaticScreen(const Game* games, size_t game_count,
     }
   }
 
-  return {ScreenType::kLeagueScoreboard, nullptr};
+  for (size_t index = 0; index < game_count; ++index) {
+  const Game& game = games[index];
+  const int64_t secondsUntilStart =
+      game.scheduled_start_unix - now_unix;
+
+  if (game.status == GameStatus::kScheduled &&
+      secondsUntilStart >= 0 &&
+      secondsUntilStart <= kEndOfTodayWindowSeconds) {
+    return {ScreenType::kLeagueScoreboard, nullptr};
+  }
+}
+
+return {ScreenType::kIdleDashboard, nullptr};
 }
 
 const char* screenTypeName(ScreenType type) {

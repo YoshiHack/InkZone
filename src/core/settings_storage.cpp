@@ -22,6 +22,8 @@ bool saveSettings(const Settings& settings) {
   }
 
   preferences.putString("timezone", settings.timezone.c_str());
+  preferences.putString("wifi_ssid", settings.wifi_ssid.c_str());
+  preferences.putString("wifi_password", settings.wifi_password.c_str());
   preferences.putUChar(
       "league",
       static_cast<unsigned char>(settings.favorite_leagues.front()));
@@ -54,8 +56,14 @@ bool loadSettings(Settings& settings) {
       preferences.getString("timezone", "UTC");
   const String team =
       preferences.getString("team", "");
+  const String wifiSsid =
+    preferences.getString("wifi_ssid", "");
+const String wifiPassword =
+    preferences.getString("wifi_password", "");
 
   settings.timezone = timezone.c_str();
+  settings.wifi_ssid = wifiSsid.c_str();
+settings.wifi_password = wifiPassword.c_str();
 
   settings.favorite_leagues.clear();
   settings.favorite_leagues.push_back(

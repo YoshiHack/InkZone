@@ -91,11 +91,25 @@ GameStatus parseStatus(JsonObjectConst status) {
   return GameStatus::kScheduled;
 }
 
+uint32_t parseTeamColor(const char* colorText) {
+  if (colorText == nullptr || colorText[0] == '\0') {
+    return 0;
+  }
+
+  return static_cast<uint32_t>(
+      std::strtoul(colorText, nullptr, 16));
+}
+
 void readCompetitor(JsonObjectConst competitor, Game& game) {
   Team team;
   team.id = competitor["team"]["id"] | "";
   team.name = competitor["team"]["displayName"] | "";
   team.abbreviation = competitor["team"]["abbreviation"] | "";
+  team.primary_color_rgb =
+    parseTeamColor(competitor["team"]["color"] | "");
+
+team.secondary_color_rgb =
+    parseTeamColor(competitor["team"]["alternateColor"] | "");
 
   const char* scoreText = competitor["score"] | "0";
   const int score = std::atoi(scoreText);
@@ -112,7 +126,9 @@ void readCompetitor(JsonObjectConst competitor, Game& game) {
 
 }  // namespace
 
-ProviderResponse parseEspnNflScoreboard(const char* json) {
+ProviderResponse parseEspnScoreboard(
+    const char* json,
+    League league) {
   ProviderResponse response;
 
   if (json == nullptr || json[0] == '\0') {
@@ -179,7 +195,7 @@ const DeserializationError error =
 
     Game game;
     game.id = event["id"] | "";
-    game.league = League::kNfl;
+    game.league = league;
 
     const char* startTime = event["date"] | "";
     game.scheduled_start_unix = parseStartTime(startTime);
@@ -210,6 +226,10 @@ const DeserializationError error =
   response.result = ProviderResult::kSuccess;
   response.diagnostic = "Parsed saved NFL scoreboard";
   return response;
+}
+
+ProviderResponse parseEspnNflScoreboard(const char* json) {
+  return parseEspnScoreboard(json, League::kNfl);
 }
 
 }  // namespace inkzone

@@ -33,6 +33,15 @@ WifiConnectResult connectToWifi(const char* networkName,
   return WifiConnectResult::kSuccess;
 }
 
+bool startSetupAccessPoint(const char* networkName) {
+  if (networkName == nullptr || networkName[0] == '\0') {
+    return false;
+  }
+
+  WiFi.mode(WIFI_AP);
+  return WiFi.softAP(networkName);
+}
+
 const char* wifiConnectResultName(WifiConnectResult result) {
   switch (result) {
     case WifiConnectResult::kSuccess:

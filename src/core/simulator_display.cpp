@@ -1,5 +1,6 @@
 #include "inkzone/simulator_display.h"
 
+#include <time.h>
 #include <Adafruit_ILI9341.h>
 
 namespace inkzone {
@@ -12,7 +13,49 @@ Adafruit_ILI9341 display(
     kDisplayCsPin,
     kDisplayDcPin);
 
+bool isFavoriteTeam(
+    const Team& team,
+    const std::string* favoriteTeamIds,
+    size_t favoriteCount) {
+  for (size_t index = 0; index < favoriteCount; ++index) {
+    const std::string& favorite = favoriteTeamIds[index];
+
+    if (team.id == favorite ||
+        team.abbreviation == favorite) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+uint16_t rgbToDisplayColor(
+    uint32_t rgb,
+    uint16_t fallbackColor) {
+  if (rgb == 0) {
+    return fallbackColor;
+  }
+
+  const uint8_t red =
+      static_cast<uint8_t>((rgb >> 16) & 0xFF);
+
+  const uint8_t green =
+      static_cast<uint8_t>((rgb >> 8) & 0xFF);
+
+  const uint8_t blue =
+      static_cast<uint8_t>(rgb & 0xFF);
+
+  return static_cast<uint16_t>(
+      ((red & 0xF8) << 8) |
+      ((green & 0xFC) << 3) |
+      (blue >> 3));
+}
+
+
 }  // namespace
+
+// Forward declaration so statusLabel can be used above.
+const char* statusLabel(GameStatus status);
 
 void initializeSimulatorDisplay() {
   display.begin();
@@ -37,9 +80,32 @@ void initializeSimulatorDisplay() {
   display.print("Starting...");
 }
 
+void renderSimulatorModeLabel(
+    const char* label) {
+  display.fillRoundRect(
+      display.width() - 62,
+      4,
+      58,
+      30,
+      4,
+      ILI9341_NAVY);
+
+  display.setTextColor(ILI9341_YELLOW);
+  display.setTextSize(1);
+  display.setCursor(
+      display.width() - 56,
+      15);
+  display.print(label);
+}
+
 void renderSimulatorScoreboard(
-    const ProviderResponse& response) {
+    const ProviderResponse& response,
+    const std::string* favoriteTeamIds,
+    size_t favoriteCount) {
   display.fillScreen(ILI9341_BLACK);
+
+  void renderSimulatorUpcomingGame(
+    const Game& game);
 
   display.fillRect(
       0,
@@ -61,8 +127,48 @@ void renderSimulatorScoreboard(
       break;
     }
 
+    const bool favoriteGame =
+        isFavoriteTeam(
+            game.home_team,
+            favoriteTeamIds,
+            favoriteCount) ||
+        isFavoriteTeam(
+            game.away_team,
+            favoriteTeamIds,
+            favoriteCount);
+
+    if (favoriteGame) {
+      display.fillRoundRect(
+          6,
+          rowY - 4,
+          display.width() - 12,
+          30,
+          4,
+          ILI9341_DARKCYAN);
+    }
+    display.fillRect(
+    6,
+    rowY - 4,
+    4,
+    30,
+    rgbToDisplayColor(
+        game.away_team.primary_color_rgb,
+        ILI9341_DARKGREY));
+
+display.fillRect(
+    display.width() - 10,
+    rowY - 4,
+    4,
+    30,
+    rgbToDisplayColor(
+        game.home_team.primary_color_rgb,
+        ILI9341_DARKGREY));
+
     display.setTextSize(2);
-    display.setTextColor(ILI9341_WHITE);
+    display.setTextColor(
+        favoriteGame
+            ? ILI9341_YELLOW
+            : ILI9341_WHITE);
     display.setCursor(12, rowY);
 
     display.printf(
@@ -94,9 +200,6 @@ display.print(statusLabel(game.status));
   }
 }
 
-// Forward declaration so statusLabel can be used above.
-const char* statusLabel(GameStatus status);
-
 const char* statusLabel(GameStatus status) {
   switch (status) {
     case GameStatus::kScheduled:
@@ -122,6 +225,154 @@ const char* statusLabel(GameStatus status) {
   }
 
   return "";
+}
+
+void renderSimulatorUpcomingGame(
+    const Game& game) {
+  display.fillScreen(ILI9341_BLACK);
+
+  display.fillRect(
+      0,
+      0,
+      display.width(),
+      40,
+      ILI9341_BLUE);
+
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(2);
+  display.setCursor(10, 12);
+  display.print("NEXT FAVORITE GAME");
+
+  display.fillRect(
+      8,
+      58,
+      8,
+      70,
+      rgbToDisplayColor(
+          game.away_team.primary_color_rgb,
+          ILI9341_DARKGREY));
+
+  display.fillRect(
+      display.width() - 16,
+      58,
+      8,
+      70,
+      rgbToDisplayColor(
+          game.home_team.primary_color_rgb,
+          ILI9341_DARKGREY));
+
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(4);
+  display.setCursor(26, 74);
+  display.print(game.away_team.abbreviation.c_str());
+
+  display.setTextSize(2);
+  display.setCursor(140, 84);
+  display.print("@");
+
+  display.setTextSize(4);
+  display.setCursor(180, 74);
+  display.print(game.home_team.abbreviation.c_str());
+
+  display.setTextColor(ILI9341_YELLOW);
+  display.setTextSize(2);
+  display.setCursor(12, 150);
+  display.print(statusLabel(game.status));
+
+  char startTimeText[32] = "Start time unavailable";
+
+  if (game.scheduled_start_unix > 0) {
+    const time_t startTime =
+        static_cast<time_t>(
+            game.scheduled_start_unix);
+
+    struct tm utcTime;
+
+    if (gmtime_r(&startTime, &utcTime) != nullptr) {
+      strftime(
+          startTimeText,
+          sizeof(startTimeText),
+          "%b %d, %H:%M UTC",
+          &utcTime);
+    }
+  }
+
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(2);
+  display.setCursor(12, 188);
+  display.print(startTimeText);
+}
+
+void renderSimulatorIdleDashboard(
+    const Game* nextFavoriteGame,
+    int64_t nowUnix) {
+  display.fillScreen(ILI9341_BLACK);
+
+  display.fillRect(0, 0, display.width(), 40, ILI9341_BLUE);
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(2);
+  display.setCursor(10, 12);
+  display.print("INKZONE DASHBOARD");
+
+  char currentTimeText[32] = "Time unavailable";
+  if (nowUnix > 0) {
+    const time_t currentTime = static_cast<time_t>(nowUnix);
+    struct tm utcTime;
+    if (gmtime_r(&currentTime, &utcTime) != nullptr) {
+      strftime(currentTimeText, sizeof(currentTimeText),
+               "%a %b %d  %H:%M UTC", &utcTime);
+    }
+  }
+
+  display.setTextColor(ILI9341_YELLOW);
+  display.setTextSize(2);
+  display.setCursor(12, 64);
+  display.print(currentTimeText);
+
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(2);
+  display.setCursor(12, 108);
+  display.print("NEXT FAVORITE GAME");
+
+  if (nextFavoriteGame == nullptr) {
+    display.setTextColor(ILI9341_LIGHTGREY);
+    display.setCursor(12, 146);
+    display.print("No favorite team set");
+    return;
+  }
+
+  display.fillRect(
+      8, 166, 8, 45,
+      rgbToDisplayColor(nextFavoriteGame->away_team.primary_color_rgb,
+                        ILI9341_DARKGREY));
+
+  display.fillRect(
+      display.width() - 16, 166, 8, 45,
+      rgbToDisplayColor(nextFavoriteGame->home_team.primary_color_rgb,
+                        ILI9341_DARKGREY));
+
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(3);
+  display.setCursor(28, 176);
+  display.printf("%s @ %s",
+                 nextFavoriteGame->away_team.abbreviation.c_str(),
+                 nextFavoriteGame->home_team.abbreviation.c_str());
+
+  char startTimeText[32] = "Start time unavailable";
+  if (nextFavoriteGame->scheduled_start_unix > 0) {
+    const time_t startTime =
+        static_cast<time_t>(nextFavoriteGame->scheduled_start_unix);
+    struct tm utcStartTime;
+    if (gmtime_r(&startTime, &utcStartTime) != nullptr) {
+      strftime(startTimeText, sizeof(startTimeText),
+               "%b %d, %H:%M UTC", &utcStartTime);
+    }
+  }
+
+  display.setTextColor(ILI9341_YELLOW);
+  display.setTextSize(2);
+  display.setCursor(12, 216);
+  display.print(startTimeText);
 }
 
 }  // namespace inkzone
