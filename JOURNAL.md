@@ -9,7 +9,7 @@ created_at: "2026-03-20"
 
 Today i started working on the base firmware including PIO, i've made placeholder games for now until i connect a API for the real sports brodcasts. Also i've made a web control pannel where you can set your favorite team, timezone, and refresh rate.
 
-![Code](images/Screenshot%202026-07-17%20121623.pngScreenshot 2026-07-17 121623.png)
+![Code](images/Screenshot 2026-07-17 121623.png)
 
 **Total time spent: 4.3 hours**
 
