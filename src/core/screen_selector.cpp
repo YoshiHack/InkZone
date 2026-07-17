@@ -11,22 +11,25 @@ bool isLive(GameStatus status) {
          status == GameStatus::kDelayed;
 }
 
-bool isFavoriteTeam(const std::string& team_id,
+bool isFavoriteTeam(const Team& team,
                     const std::string* favorite_team_ids,
                     size_t favorite_count) {
   for (size_t index = 0; index < favorite_count; ++index) {
-    if (team_id == favorite_team_ids[index]) {
+    const std::string& favorite = favorite_team_ids[index];
+
+    if (team.id == favorite || team.abbreviation == favorite) {
       return true;
     }
   }
+
   return false;
 }
 
 bool includesFavorite(const Game& game,
                       const std::string* favorite_team_ids,
                       size_t favorite_count) {
-  return isFavoriteTeam(game.home_team.id, favorite_team_ids, favorite_count) ||
-         isFavoriteTeam(game.away_team.id, favorite_team_ids, favorite_count);
+return isFavoriteTeam(game.home_team, favorite_team_ids, favorite_count) ||
+       isFavoriteTeam(game.away_team, favorite_team_ids, favorite_count);
 }
 
 const Game* findFirstMatching(const Game* games, size_t game_count,

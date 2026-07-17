@@ -98,6 +98,12 @@ const char kSettingsPage[] = R"html(
 
       <button type="submit">Save settings</button>
     </form>
+    <form action="/reset" method="POST"
+      onsubmit="return confirm('Reset all saved InkZone settings?');">
+  <button type="submit" class="reset-button">
+    Reset saved settings
+  </button>
+</form>
   </main>
 </body>
 </html>
@@ -134,6 +140,10 @@ void SettingsWebServer::begin() {
   server_.on("/save", HTTP_POST, [this]() {
     handleSave();
   });
+
+  server_.on("/reset", HTTP_POST, [this]() {
+  handleReset();
+});
 
   server_.onNotFound([this]() {
     server_.send(404, "text/plain", "Page not found");
@@ -235,6 +245,22 @@ void SettingsWebServer::handleSave() {
 
   delay(1000);
 ESP.restart();
+}
+
+void SettingsWebServer::handleReset() {
+  clearSavedSettings();
+
+  server_.send(
+      200,
+      "text/html",
+      "<!DOCTYPE html>"
+      "<html><body>"
+      "<h1>InkZone settings reset</h1>"
+      "<p>The device is restarting.</p>"
+      "</body></html>");
+
+  delay(1000);
+  ESP.restart();
 }
 
 }  // namespace inkzone

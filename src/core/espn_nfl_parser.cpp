@@ -121,8 +121,31 @@ ProviderResponse parseEspnNflScoreboard(const char* json) {
     return response;
   }
 
-  JsonDocument document;
-  const DeserializationError error = deserializeJson(document, json);
+JsonDocument filter;
+
+filter["events"][0]["id"] = true;
+filter["events"][0]["date"] = true;
+
+filter["events"][0]["status"]["period"] = true;
+filter["events"][0]["status"]["displayClock"] = true;
+filter["events"][0]["status"]["type"]["state"] = true;
+filter["events"][0]["status"]["type"]["completed"] = true;
+
+filter["events"][0]["competitions"][0]["competitors"][0]["homeAway"] = true;
+filter["events"][0]["competitions"][0]["competitors"][0]["score"] = true;
+filter["events"][0]["competitions"][0]["competitors"][0]["team"]["id"] = true;
+filter["events"][0]["competitions"][0]["competitors"][0]["team"]["displayName"] =
+    true;
+filter["events"][0]["competitions"][0]["competitors"][0]["team"]["abbreviation"] =
+    true;
+
+JsonDocument document;
+const DeserializationError error =
+    deserializeJson(
+        document,
+        json,
+        DeserializationOption::Filter(filter),
+        DeserializationOption::NestingLimit(20));
 
   if (error) {
     response.result = ProviderResult::kInvalidResponse;

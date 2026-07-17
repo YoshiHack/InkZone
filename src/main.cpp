@@ -1,13 +1,16 @@
 #include <Arduino.h>
+#include <time.h>
 
 #include "inkzone/device_status.h"
 #include "inkzone/settings.h"
 #include "inkzone/sample_nfl_provider.h"
+#include "inkzone/espn_nfl_client.h"
 #include "inkzone/espn_nfl_parser.h"
 #include "inkzone/sample_nfl_json.h"
 #include "inkzone/wifi_connection.h"
 #include "inkzone/settings_web_server.h"
 #include "inkzone/settings_storage.h"
+#include "inkzone/screen_selector.h"
 
 namespace {
 constexpr unsigned long kSerialBaudRate = 115200;
@@ -18,6 +21,9 @@ inkzone::Settings settings;
 inkzone::SettingsWebServer settingsWebServer(settings, 90);
 inkzone::SampleNflProvider sampleProvider;
 unsigned long lastHeartbeatMs = 0;
+unsigned long lastNflUpdateMs = 0;
+inkzone::ProviderResponse cachedNflResponse;
+bool hasCachedNflResponse = false;
 
 void printBootInformation() {
   Serial.printf("Chip: %s, revision %d\n", ESP.getChipModel(),
@@ -72,6 +78,67 @@ const char* gameStatusName(inkzone::GameStatus status) {
   return "unknown";
 }
 
+void printLiveNflScoreboard() {
+  Serial.println("Requesting live NFL scoreboard...");
+
+inkzone::ProviderResponse response =
+    inkzone::fetchEspnNflScoreboard();
+
+  Serial.printf(
+      "Live NFL result: %s\n",
+      inkzone::providerResultName(response.result));
+
+  if (response.result != inkzone::ProviderResult::kSuccess) {
+  Serial.printf(
+      "Live NFL diagnostic: %s\n",
+      response.diagnostic.c_str());
+
+  if (hasCachedNflResponse) {
+    Serial.println("Using most recent valid NFL scoreboard...");
+    response = cachedNflResponse;
+  } else {
+    Serial.println("Using saved NFL scoreboard fallback...");
+
+    response =
+        inkzone::parseEspnNflScoreboard(
+            inkzone::kSampleNflScoreboardJson);
+
+    if (response.result != inkzone::ProviderResult::kSuccess) {
+      Serial.println("Saved NFL scoreboard fallback failed");
+      return;
+    }
+  }
+} else {
+  cachedNflResponse = response;
+  hasCachedNflResponse = true;
+  Serial.println("Cached latest valid NFL scoreboard");
+}
+
+  Serial.println("Using saved NFL scoreboard fallback...");
+
+  response =
+      inkzone::parseEspnNflScoreboard(
+          inkzone::kSampleNflScoreboardJson);
+
+  if (response.result != inkzone::ProviderResult::kSuccess) {
+    Serial.println("Saved NFL scoreboard fallback failed");
+    return;
+
+}
+  Serial.printf(
+      "Live NFL games received: %u\n",
+      static_cast<unsigned int>(response.games.size()));
+
+  for (const inkzone::Game& game : response.games) {
+    Serial.printf(
+        "Live NFL game: %s %d at %s %d\n",
+        game.away_team.abbreviation.c_str(),
+        game.away_score,
+        game.home_team.abbreviation.c_str(),
+        game.home_score);
+  }
+}
+
 void printParsedNflScoreboard() {
   const inkzone::ProviderResponse response =
       inkzone::parseEspnNflScoreboard(inkzone::kSampleNflScoreboardJson);
@@ -102,17 +169,48 @@ Serial.printf("Parsed start time: %lld\n",
   }
 }
 
+bool synchronizeClock() {
+  Serial.println("Synchronizing clock...");
+
+  configTime(0, 0, "pool.ntp.org");
+
+  const unsigned long startedMs = millis();
+  constexpr unsigned long kTimeSyncTimeoutMs = 10000;
+
+  time_t now = time(nullptr);
+
+  while (now < 1000000000 &&
+         millis() - startedMs < kTimeSyncTimeoutMs) {
+    delay(100);
+    now = time(nullptr);
+  }
+
+  if (now < 1000000000) {
+    Serial.println("Clock synchronization timed out");
+    return false;
+  }
+
+  Serial.printf(
+      "Clock synchronized: %lld\n",
+      static_cast<long long>(now));
+
+  return true;
+}
+
 void connectToWokwiWifi() {
   Serial.println("Connecting to Wokwi Wi-Fi...");
 
   const inkzone::WifiConnectResult result =
       inkzone::connectToWifi("Wokwi-GUEST", "", 10000);
 
-  Serial.printf("Wi-Fi result: %s\n",
-                inkzone::wifiConnectResultName(result));
-                if (result == inkzone::WifiConnectResult::kSuccess) {
-  settingsWebServer.begin();
-}
+  Serial.printf(
+      "Wi-Fi result: %s\n",
+      inkzone::wifiConnectResultName(result));
+
+  if (result == inkzone::WifiConnectResult::kSuccess) {
+    synchronizeClock();
+    settingsWebServer.begin();
+  }
 }
 
 void selectStateFromSettings() {
@@ -139,15 +237,22 @@ void setup() {
 Serial.printf("Saved settings: %s\n",
               settingsLoaded ? "loaded" : "not found");
   connectToWokwiWifi();
+  printLiveNflScoreboard();
+  lastNflUpdateMs = millis();
   selectStateFromSettings();
   printDeviceState();
-  printSampleGame();
-  printParsedNflScoreboard();
 }
 
 void loop() {
   settingsWebServer.handleClient();
   const unsigned long nowMs = millis();
+  const unsigned long nflRefreshIntervalMs =
+    settings.live_refresh_seconds * 1000UL;
+
+if (nowMs - lastNflUpdateMs >= nflRefreshIntervalMs) {
+  lastNflUpdateMs = nowMs;
+  printLiveNflScoreboard();
+}
 
   if (nowMs - lastHeartbeatMs >= kHeartbeatIntervalMs) {
     lastHeartbeatMs = nowMs;

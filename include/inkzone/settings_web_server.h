@@ -18,6 +18,7 @@ class SettingsWebServer {
  private:
   void handleHome();
   void handleSave();
+  void handleReset();
 
   Settings& settings_;
   WebServer server_;
