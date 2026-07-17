@@ -6,14 +6,29 @@
     {
       "type": "board-esp32-devkit-c-v4",
       "id": "esp32",
-      "top": 0,
-      "left": 0,
+      "top": 50,
+      "left": -120,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ili9341",
+      "id": "display",
+      "top": -120,
+      "left": 130,
       "attrs": {}
     }
   ],
   "connections": [
     [ "esp32:TX", "$serialMonitor:RX", "" ],
-    [ "esp32:RX", "$serialMonitor:TX", "" ]
+    [ "esp32:RX", "$serialMonitor:TX", "" ],
+
+    [ "display:VCC", "esp32:5V", "red", [] ],
+    [ "display:GND", "esp32:GND.1", "black", [] ],
+    [ "display:CS", "esp32:15", "green", [] ],
+    [ "display:D/C", "esp32:2", "green", [] ],
+    [ "display:MOSI", "esp32:23", "green", [] ],
+    [ "display:SCK", "esp32:18", "green", [] ],
+    [ "display:LED", "esp32:3V3", "red", [] ]
   ],
   "serialMonitor": {
     "display": "always",

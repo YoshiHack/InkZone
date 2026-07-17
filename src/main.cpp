@@ -11,6 +11,8 @@
 #include "inkzone/settings_web_server.h"
 #include "inkzone/settings_storage.h"
 #include "inkzone/screen_selector.h"
+#include "inkzone/refresh_scheduler.h"
+#include "inkzone/simulator_display.h"
 
 namespace {
 constexpr unsigned long kSerialBaudRate = 115200;
@@ -24,6 +26,8 @@ unsigned long lastHeartbeatMs = 0;
 unsigned long lastNflUpdateMs = 0;
 inkzone::ProviderResponse cachedNflResponse;
 bool hasCachedNflResponse = false;
+inkzone::ActivityLevel currentActivity =
+    inkzone::ActivityLevel::kNoGamesToday;
 
 void printBootInformation() {
   Serial.printf("Chip: %s, revision %d\n", ESP.getChipModel(),
@@ -78,6 +82,47 @@ const char* gameStatusName(inkzone::GameStatus status) {
   return "unknown";
 }
 
+inkzone::ActivityLevel activityForScoreboard(
+    const inkzone::ScreenDecision& decision,
+    const inkzone::ProviderResponse& response,
+    int64_t nowUnix) {
+  if (decision.type == inkzone::ScreenType::kLiveFavorite) {
+    return inkzone::ActivityLevel::kLiveFavoriteGame;
+  }
+
+  if (decision.type == inkzone::ScreenType::kLiveLeague) {
+    return inkzone::ActivityLevel::kOtherLiveGame;
+  }
+
+  if (decision.type == inkzone::ScreenType::kUpcomingFavorite) {
+    return inkzone::ActivityLevel::kGameWithinHour;
+  }
+
+  if (decision.type == inkzone::ScreenType::kFavoriteSchedule) {
+    return inkzone::ActivityLevel::kGamesToday;
+  }
+
+  bool hasGameToday = false;
+
+  for (const inkzone::Game& game : response.games) {
+    const int64_t secondsUntilStart =
+        game.scheduled_start_unix - nowUnix;
+
+    if (secondsUntilStart >= 0 && secondsUntilStart <= 60 * 60) {
+      return inkzone::ActivityLevel::kGameWithinHour;
+    }
+
+    if (secondsUntilStart >= 0 &&
+        secondsUntilStart <= 24 * 60 * 60) {
+      hasGameToday = true;
+    }
+  }
+
+  return hasGameToday
+             ? inkzone::ActivityLevel::kGamesToday
+             : inkzone::ActivityLevel::kNoGamesToday;
+}
+
 void printLiveNflScoreboard() {
   Serial.println("Requesting live NFL scoreboard...");
 
@@ -114,17 +159,38 @@ inkzone::ProviderResponse response =
   Serial.println("Cached latest valid NFL scoreboard");
 }
 
-  Serial.println("Using saved NFL scoreboard fallback...");
+const std::string* favoriteTeamIds =
+    settings.favorite_team_ids.empty()
+        ? nullptr
+        : settings.favorite_team_ids.data();
 
-  response =
-      inkzone::parseEspnNflScoreboard(
-          inkzone::kSampleNflScoreboardJson);
+const int64_t nowUnix =
+    static_cast<int64_t>(time(nullptr));
 
-  if (response.result != inkzone::ProviderResult::kSuccess) {
-    Serial.println("Saved NFL scoreboard fallback failed");
-    return;
+const inkzone::ScreenDecision screenDecision =
+    inkzone::chooseAutomaticScreen(
+        response.games.data(),
+        response.games.size(),
+        favoriteTeamIds,
+        settings.favorite_team_ids.size(),
+        nowUnix);
 
-}
+currentActivity =
+    activityForScoreboard(
+        screenDecision,
+        response,
+        nowUnix);
+
+Serial.printf(
+    "Recommended refresh: %lu seconds\n",
+    static_cast<unsigned long>(
+        inkzone::refreshIntervalMs(currentActivity) / 1000UL));
+
+Serial.printf(
+    "Automatic screen: %s\n",
+    inkzone::screenTypeName(screenDecision.type));
+    inkzone::renderSimulatorScoreboard(response);
+
   Serial.printf(
       "Live NFL games received: %u\n",
       static_cast<unsigned int>(response.games.size()));
@@ -231,6 +297,7 @@ void setup() {
 
   Serial.println();
   Serial.println("InkZone starting...");
+  inkzone::initializeSimulatorDisplay();
   
   const bool settingsLoaded = inkzone::loadSettings(settings);
 
@@ -246,8 +313,14 @@ Serial.printf("Saved settings: %s\n",
 void loop() {
   settingsWebServer.handleClient();
   const unsigned long nowMs = millis();
-  const unsigned long nflRefreshIntervalMs =
-    settings.live_refresh_seconds * 1000UL;
+  unsigned long nflRefreshIntervalMs =
+    inkzone::refreshIntervalMs(currentActivity);
+
+if (currentActivity ==
+    inkzone::ActivityLevel::kLiveFavoriteGame) {
+  nflRefreshIntervalMs =
+      settings.live_refresh_seconds * 1000UL;
+}
 
 if (nowMs - lastNflUpdateMs >= nflRefreshIntervalMs) {
   lastNflUpdateMs = nowMs;
