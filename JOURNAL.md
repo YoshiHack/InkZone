@@ -17,6 +17,6 @@ Today i started working on the base firmware including PIO, i've made placeholde
 
 I've started using the Wokwi simulator to work on tests, i also adapted a ESPN API to pull NFL games and put them on the screen (it took a while to figure out the SPI configuration) 
 
-<img src="/images/Screenshot%202026-07-17%20085858.png" width="400">
+<img src="images/Screenshot%202026-07-17%20085858.png" width="400">
 
 **Total time spent: 2 hours**
