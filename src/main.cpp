@@ -7,6 +7,7 @@
 #include "inkzone/espn_nfl_client.h"
 #include "inkzone/espn_nfl_parser.h"
 #include "inkzone/espn_ncaa_football_client.h"
+#include "inkzone/espn_nba_client.h"
 #include "inkzone/sample_nfl_json.h"
 #include "inkzone/wifi_connection.h"
 #include "inkzone/settings_web_server.h"
@@ -498,6 +499,30 @@ void printNcaaFootballScoreboard() {
   }
 }
 
+void printNbaScoreboard() {
+  Serial.println("Requesting NBA scoreboard...");
+
+  const inkzone::ProviderResponse response =
+      inkzone::fetchEspnNbaScoreboard();
+
+  Serial.printf(
+      "NBA result: %s\n",
+      inkzone::providerResultName(response.result));
+
+  Serial.printf(
+      "NBA diagnostic: %s\n",
+      response.diagnostic.c_str());
+
+  for (const inkzone::Game& game : response.games) {
+    Serial.printf(
+        "NBA game: %s %d at %s %d\n",
+        game.away_team.abbreviation.c_str(),
+        game.away_score,
+        game.home_team.abbreviation.c_str(),
+        game.home_score);
+  }
+}
+
 void setup() {
   Serial.begin(kSerialBaudRate);
   delay(500);
@@ -516,6 +541,7 @@ Serial.printf("Saved settings: %s\n",
   connectToConfiguredWifi();
   printLiveNflScoreboard();
   printNcaaFootballScoreboard();
+  printNbaScoreboard();
   lastNflUpdateMs = millis();
   selectStateFromSettings();
   printDeviceState();
