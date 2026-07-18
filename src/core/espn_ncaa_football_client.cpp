@@ -11,9 +11,9 @@ namespace {
 
 constexpr char kNcaaFootballScoreboardUrl[] =
     "https://site.api.espn.com/apis/site/v2/sports/"
-    "football/college-football/scoreboard?limit=10";
+    "football/college-football/scoreboard?limit=5";
 
-}  // namespace
+}
 
 ProviderResponse fetchEspnNcaaFootballScoreboard() {
   ProviderResponse response;
@@ -26,14 +26,18 @@ ProviderResponse fetchEspnNcaaFootballScoreboard() {
 
   WiFiClientSecure client;
   client.setInsecure();
+  client.setTimeout(20000);
 
   HTTPClient request;
+  request.setTimeout(20000);
 
   if (!request.begin(client, kNcaaFootballScoreboardUrl)) {
     response.result = ProviderResult::kRequestFailed;
     response.diagnostic = "Could not begin NCAA football request";
     return response;
   }
+
+  request.useHTTP10(true);
 
   const int statusCode = request.GET();
 
@@ -53,19 +57,13 @@ ProviderResponse fetchEspnNcaaFootballScoreboard() {
     return response;
   }
 
-  const String json = request.getString();
-  request.end();
+ProviderResponse parsedResponse =
+    parseEspnScoreboard(
+        request.getStream(),
+        League::kNcaaFootball);
 
-  if (json.isEmpty()) {
-    response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic =
-        "NCAA football provider returned an empty response";
-    return response;
-  }
-
-  return parseEspnScoreboard(
-      json.c_str(),
-      League::kNcaaFootball);
+request.end();
+return parsedResponse;
 }
 
-}  // namespace inkzone
+}

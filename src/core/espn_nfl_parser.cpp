@@ -2,9 +2,9 @@
 
 #include <ArduinoJson.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <string>
-#include <cstdio>
 
 namespace inkzone {
 namespace {
@@ -106,10 +106,9 @@ void readCompetitor(JsonObjectConst competitor, Game& game) {
   team.name = competitor["team"]["displayName"] | "";
   team.abbreviation = competitor["team"]["abbreviation"] | "";
   team.primary_color_rgb =
-    parseTeamColor(competitor["team"]["color"] | "");
-
-team.secondary_color_rgb =
-    parseTeamColor(competitor["team"]["alternateColor"] | "");
+      parseTeamColor(competitor["team"]["color"] | "");
+  team.secondary_color_rgb =
+      parseTeamColor(competitor["team"]["alternateColor"] | "");
 
   const char* scoreText = competitor["score"] | "0";
   const int score = std::atoi(scoreText);
@@ -124,56 +123,42 @@ team.secondary_color_rgb =
   }
 }
 
-}  // namespace
+void configureScoreboardFilter(JsonDocument& filter) {
+  filter["events"][0]["id"] = true;
+  filter["events"][0]["date"] = true;
 
-ProviderResponse parseEspnScoreboard(
-    const char* json,
+  filter["events"][0]["status"]["period"] = true;
+  filter["events"][0]["status"]["displayClock"] = true;
+  filter["events"][0]["status"]["type"]["state"] = true;
+  filter["events"][0]["status"]["type"]["completed"] = true;
+
+  filter["events"][0]["competitions"][0]["competitors"][0]["homeAway"] =
+      true;
+  filter["events"][0]["competitions"][0]["competitors"][0]["score"] =
+      true;
+  filter["events"][0]["competitions"][0]["competitors"][0]["team"]["id"] =
+      true;
+  filter["events"][0]["competitions"][0]["competitors"][0]["team"]
+        ["displayName"] = true;
+  filter["events"][0]["competitions"][0]["competitors"][0]["team"]
+        ["abbreviation"] = true;
+  filter["events"][0]["competitions"][0]["competitors"][0]["team"]
+        ["color"] = true;
+  filter["events"][0]["competitions"][0]["competitors"][0]["team"]
+        ["alternateColor"] = true;
+}
+
+ProviderResponse parseScoreboardDocument(
+    const JsonDocument& document,
     League league) {
   ProviderResponse response;
 
-  if (json == nullptr || json[0] == '\0') {
-    response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic = "NFL scoreboard JSON was empty";
-    return response;
-  }
-
-JsonDocument filter;
-
-filter["events"][0]["id"] = true;
-filter["events"][0]["date"] = true;
-
-filter["events"][0]["status"]["period"] = true;
-filter["events"][0]["status"]["displayClock"] = true;
-filter["events"][0]["status"]["type"]["state"] = true;
-filter["events"][0]["status"]["type"]["completed"] = true;
-
-filter["events"][0]["competitions"][0]["competitors"][0]["homeAway"] = true;
-filter["events"][0]["competitions"][0]["competitors"][0]["score"] = true;
-filter["events"][0]["competitions"][0]["competitors"][0]["team"]["id"] = true;
-filter["events"][0]["competitions"][0]["competitors"][0]["team"]["displayName"] =
-    true;
-filter["events"][0]["competitions"][0]["competitors"][0]["team"]["abbreviation"] =
-    true;
-
-JsonDocument document;
-const DeserializationError error =
-    deserializeJson(
-        document,
-        json,
-        DeserializationOption::Filter(filter),
-        DeserializationOption::NestingLimit(20));
-
-  if (error) {
-    response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic = error.c_str();
-    return response;
-  }
-
-  const JsonArrayConst events = document["events"].as<JsonArrayConst>();
+  const JsonArrayConst events =
+      document["events"].as<JsonArrayConst>();
 
   if (events.isNull()) {
     response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic = "NFL scoreboard did not contain events";
+    response.diagnostic = "Scoreboard did not contain events";
     return response;
   }
 
@@ -219,17 +204,76 @@ const DeserializationError error =
 
   if (response.games.empty()) {
     response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic = "NFL scoreboard contained no usable games";
+    response.diagnostic =
+        "Scoreboard contained no usable games";
     return response;
   }
 
   response.result = ProviderResult::kSuccess;
-  response.diagnostic = "Parsed saved NFL scoreboard";
+  response.diagnostic = "Parsed scoreboard";
   return response;
+}
+
+}
+
+ProviderResponse parseEspnScoreboard(
+    const char* json,
+    League league) {
+  ProviderResponse response;
+
+  if (json == nullptr || json[0] == '\0') {
+    response.result = ProviderResult::kInvalidResponse;
+    response.diagnostic = "Scoreboard JSON was empty";
+    return response;
+  }
+
+  JsonDocument filter;
+  configureScoreboardFilter(filter);
+
+  JsonDocument document;
+  const DeserializationError error =
+      deserializeJson(
+          document,
+          json,
+          DeserializationOption::Filter(filter),
+          DeserializationOption::NestingLimit(20));
+
+  if (error) {
+    response.result = ProviderResult::kInvalidResponse;
+    response.diagnostic = error.c_str();
+    return response;
+  }
+
+  return parseScoreboardDocument(document, league);
+}
+
+ProviderResponse parseEspnScoreboard(
+    Stream& jsonStream,
+    League league) {
+  ProviderResponse response;
+
+  JsonDocument filter;
+  configureScoreboardFilter(filter);
+
+  JsonDocument document;
+  const DeserializationError error =
+      deserializeJson(
+          document,
+          jsonStream,
+          DeserializationOption::Filter(filter),
+          DeserializationOption::NestingLimit(20));
+
+  if (error) {
+    response.result = ProviderResult::kInvalidResponse;
+    response.diagnostic = error.c_str();
+    return response;
+  }
+
+  return parseScoreboardDocument(document, league);
 }
 
 ProviderResponse parseEspnNflScoreboard(const char* json) {
   return parseEspnScoreboard(json, League::kNfl);
 }
 
-}  // namespace inkzone
+}

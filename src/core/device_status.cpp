@@ -11,30 +11,38 @@ uint32_t DeviceStatus::changedAtMs() const {
 }
 
 bool DeviceStatus::isOperational() const {
-  return state_ == DeviceState::kReady || state_ == DeviceState::kOffline;
-}
-
-void DeviceStatus::transitionTo(DeviceState state, uint32_t now_ms) {
-  if (state_ == state) {
-    return;
+  if (state_ == DeviceState::kReady ||
+      state_ == DeviceState::kOffline) {
+    return true;
   }
 
-  state_ = state;
-  changed_at_ms_ = now_ms;
+  return false;
+}
+
+void DeviceStatus::transitionTo(DeviceState newState, uint32_t now_ms) {
+  if (state_ != newState) {
+    state_ = newState;
+    changed_at_ms_ = now_ms;
+  }
 }
 
 const char* deviceStateName(DeviceState state) {
   switch (state) {
     case DeviceState::kStarting:
       return "starting";
+
     case DeviceState::kNeedsSetup:
       return "needs setup";
+
     case DeviceState::kConnecting:
       return "connecting";
+
     case DeviceState::kFetchingData:
       return "fetching data";
+
     case DeviceState::kReady:
       return "ready";
+
     case DeviceState::kOffline:
       return "offline";
   }
@@ -42,4 +50,4 @@ const char* deviceStateName(DeviceState state) {
   return "unknown";
 }
 
-}  // namespace inkzone
+}

@@ -2,17 +2,21 @@
 
 #include <stdint.h>
 
-namespace inkzone {
+namespace inkzone
+{
 
-enum class ActivityLevel {
-  kLiveFavoriteGame,
-  kOtherLiveGame,
-  kGameWithinHour,
-  kGamesToday,
-  kNoGamesToday,
-  kNetworkRetry,
+enum class ActivityLevel
+{
+    kLiveFavoriteGame,
+    kOtherLiveGame,
+    kGameWithinHour,
+    kGamesToday,
+    kNoGamesToday,
+    kNetworkRetry
 };
 
-uint32_t refreshIntervalMs(ActivityLevel activity, uint8_t retry_attempt = 0);
+uint32_t refreshIntervalMs(
+    ActivityLevel activity,
+    uint8_t retry_attempt = 0);
 
-}  // namespace inkzone
+}

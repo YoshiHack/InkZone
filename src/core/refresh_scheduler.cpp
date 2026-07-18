@@ -3,32 +3,48 @@
 namespace inkzone {
 namespace {
 
-constexpr uint32_t kSecondMs = 1000UL;
-constexpr uint32_t kMinuteMs = 60UL * kSecondMs;
-constexpr uint32_t kHourMs = 60UL * kMinuteMs;
+constexpr uint32_t secondMs = 1000;
+constexpr uint32_t minuteMs = 60 * secondMs;
+constexpr uint32_t hourMs = 60 * minuteMs;
 
-}  // namespace
+}
 
 uint32_t refreshIntervalMs(ActivityLevel activity, uint8_t retry_attempt) {
   switch (activity) {
     case ActivityLevel::kLiveFavoriteGame:
-      return 60UL * kSecondMs;
+      return 60 * secondMs;
+
     case ActivityLevel::kOtherLiveGame:
-      return 2UL * kMinuteMs;
+      return 2 * minuteMs;
+
     case ActivityLevel::kGameWithinHour:
-      return 5UL * kMinuteMs;
+      return 5 * minuteMs;
+
     case ActivityLevel::kGamesToday:
-      return 15UL * kMinuteMs;
+      return 15 * minuteMs;
+
     case ActivityLevel::kNoGamesToday:
-      return 2UL * kHourMs;
+      return 2 * hourMs;
+
     case ActivityLevel::kNetworkRetry: {
-      const uint8_t capped_attempt = retry_attempt > 6 ? 6 : retry_attempt;
-      const uint32_t interval = (1UL << capped_attempt) * 5UL * kSecondMs;
-      return interval > 5UL * kMinuteMs ? 5UL * kMinuteMs : interval;
+      uint8_t attempt = retry_attempt;
+
+      if (attempt > 6) {
+        attempt = 6;
+      }
+
+      uint32_t interval =
+          (1UL << attempt) * 5 * secondMs;
+
+      if (interval > 5 * minuteMs) {
+        interval = 5 * minuteMs;
+      }
+
+      return interval;
     }
   }
 
-  return 15UL * kMinuteMs;
+  return 15 * minuteMs;
 }
 
-}  // namespace inkzone
+}

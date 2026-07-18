@@ -6,6 +6,7 @@
 #include "inkzone/sample_nfl_provider.h"
 #include "inkzone/espn_nfl_client.h"
 #include "inkzone/espn_nfl_parser.h"
+#include "inkzone/espn_ncaa_football_client.h"
 #include "inkzone/sample_nfl_json.h"
 #include "inkzone/wifi_connection.h"
 #include "inkzone/settings_web_server.h"
@@ -293,6 +294,13 @@ bool synchronizeClock() {
 }
 
 void connectToConfiguredWifi() {
+#if defined(INKZONE_WOKWI_SIMULATOR)
+  if (settings.wifi_ssid.empty()) {
+    settings.wifi_ssid = "Wokwi-GUEST";
+    settings.wifi_password.clear();
+  }
+#endif
+
   if (settings.wifi_ssid.empty()) {
     Serial.println("No saved Wi-Fi network.");
     Serial.println("Starting InkZone setup network...");
@@ -464,7 +472,31 @@ void selectStateFromSettings() {
     Serial.printf("Configuration: %s\n", inkzone::settingsErrorName(error));
   }
 }
-}  // namespace
+} 
+
+void printNcaaFootballScoreboard() {
+  Serial.println("Requesting NCAA football scoreboard...");
+
+  const inkzone::ProviderResponse response =
+      inkzone::fetchEspnNcaaFootballScoreboard();
+
+  Serial.printf(
+      "NCAA football result: %s\n",
+      inkzone::providerResultName(response.result));
+
+  Serial.printf(
+      "NCAA football diagnostic: %s\n",
+      response.diagnostic.c_str());
+
+  for (const inkzone::Game& game : response.games) {
+    Serial.printf(
+        "NCAA football game: %s %d at %s %d\n",
+        game.away_team.abbreviation.c_str(),
+        game.away_score,
+        game.home_team.abbreviation.c_str(),
+        game.home_score);
+  }
+}
 
 void setup() {
   Serial.begin(kSerialBaudRate);
@@ -483,6 +515,7 @@ Serial.printf("Saved settings: %s\n",
               settingsLoaded ? "loaded" : "not found");
   connectToConfiguredWifi();
   printLiveNflScoreboard();
+  printNcaaFootballScoreboard();
   lastNflUpdateMs = millis();
   selectStateFromSettings();
   printDeviceState();

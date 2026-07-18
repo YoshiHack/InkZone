@@ -52,4 +52,4 @@ bool FavoriteTeamNavigator::select(uint8_t index) {
   return true;
 }
 
-}  // namespace inkzone
+}
