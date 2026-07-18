@@ -19,4 +19,4 @@ I've started using the Wokwi simulator to work on tests, i also adapted a ESPN A
 
 <img src="images/Screenshot%202026-07-17%20085858.png" width="400">
 
-**Total time spent: 5 hours**
+**Total time spent: 6 hours**
