@@ -25,10 +25,12 @@ So far Inkzone has 2 pages:
 
 ##### Page 1
 displays 5 upcoming games
+
 <img src="images\page1.png" width="400">
  
 ##### Page 2
 displays one singular game (The game will be the team you favorited in the webpage) and it will also display the date and time. 
+
 <img src="images\page2.png" width="400">
 
 ##### Auto and Manual modes
