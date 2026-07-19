@@ -114,7 +114,19 @@ const char kSettingsPage[] = R"html(
         <option value="America/Los_Angeles" %TZ_PACIFIC%>Pacific</option>
       </select>
 
-      <label for="team">Favorite NFL team</label>
+            <label for="league">Favorite league</label>
+      <select id="league" name="league">
+        <option value="nfl" %LEAGUE_NFL%>NFL</option>
+        <option value="ncaa_football" %LEAGUE_NCAA_FOOTBALL%>
+          NCAA football
+        </option>
+        <option value="nba" %LEAGUE_NBA%>NBA</option>
+        <option value="ncaa_basketball" %LEAGUE_NCAA_BASKETBALL%>
+          NCAA basketball
+        </option>
+        <option value="nhl" %LEAGUE_NHL%>NHL</option>
+      </select>
+      <label for="team">Favorite team abbreviation</label>
       <input id="team"
              name="team"
              maxlength="5"
@@ -277,6 +289,30 @@ void SettingsWebServer::handleHome() {
       "%TZ_PACIFIC%",
       settings_.timezone == "America/Los_Angeles" ? "selected" : "");
 
+      const League selectedLeague =
+    settings_.favorite_leagues.empty()
+        ? League::kNfl
+        : settings_.favorite_leagues.front();
+
+page.replace(
+    "%LEAGUE_NFL%",
+    selectedLeague == League::kNfl ? "selected" : "");
+
+page.replace(
+    "%LEAGUE_NCAA_FOOTBALL%",
+    selectedLeague == League::kNcaaFootball ? "selected" : "");
+
+page.replace(
+    "%LEAGUE_NBA%",
+    selectedLeague == League::kNba ? "selected" : "");
+
+page.replace(
+    "%LEAGUE_NCAA_BASKETBALL%",
+    selectedLeague == League::kNcaaBasketball ? "selected" : "");
+
+page.replace(
+    "%LEAGUE_NHL%",
+    selectedLeague == League::kNhl ? "selected" : "");
   const char* team =
       settings_.favorite_team_ids.empty()
           ? ""
@@ -306,6 +342,7 @@ page.replace(
 void SettingsWebServer::handleSave() {
   String timezone = server_.arg("timezone");
   String team = server_.arg("team");
+  String league = server_.arg("league");
   String wifiSsid = server_.arg("wifi_ssid");
 String wifiPassword = server_.arg("wifi_password");
   const unsigned long interval =
@@ -326,8 +363,19 @@ if (!wifiPassword.isEmpty()) {
 
   settings_.timezone = timezone.c_str();
 
+  League selectedLeague = League::kNfl;
+
+if (league == "ncaa_football") {
+  selectedLeague = League::kNcaaFootball;
+} else if (league == "nba") {
+  selectedLeague = League::kNba;
+} else if (league == "ncaa_basketball") {
+  selectedLeague = League::kNcaaBasketball;
+} else if (league == "nhl") {
+  selectedLeague = League::kNhl;
+}
   settings_.favorite_leagues.clear();
-  settings_.favorite_leagues.push_back(League::kNfl);
+  settings_.favorite_leagues.push_back(selectedLeague);
 
   settings_.favorite_team_ids.clear();
 

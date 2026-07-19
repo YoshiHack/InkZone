@@ -25,6 +25,14 @@ I've started using the Wokwi simulator to work on tests, i also adapted a ESPN A
 
 To start today i kept trying to fix the NCAA football error. Ok i finaly fixed it. I started working on the NBA cleint, Now working on NCAA basketball
 
-<img src="images/Screenshot%202026-07-17%20085858.png" width="400">
+<img src="images\page1.png" width="400">
 
-**Total time spent: 6 hours**
+**Total time spent: 5 hours**
+
+# July 19 : Kept working even more
+
+I started by working on NHL, then started working on adding a league selector to the webpage then removed all of the extra NFL names, worked on the readme a little, I started adding a score animation finished animation 
+
+<img src="images\page1.png" width="400">
+
+**Total time spent: 5 hours**

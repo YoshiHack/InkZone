@@ -3,11 +3,14 @@
 
 #include "inkzone/device_status.h"
 #include "inkzone/settings.h"
+#include "inkzone/data_cache.h"
 #include "inkzone/sample_nfl_provider.h"
 #include "inkzone/espn_nfl_client.h"
 #include "inkzone/espn_nfl_parser.h"
 #include "inkzone/espn_ncaa_football_client.h"
 #include "inkzone/espn_nba_client.h"
+#include "inkzone/espn_ncaa_basketball_client.h"
+#include "inkzone/espn_nhl_client.h"
 #include "inkzone/sample_nfl_json.h"
 #include "inkzone/wifi_connection.h"
 #include "inkzone/settings_web_server.h"
@@ -42,6 +45,7 @@ unsigned long lastHeartbeatMs = 0;
 unsigned long lastNflUpdateMs = 0;
 inkzone::ProviderResponse cachedNflResponse;
 bool hasCachedNflResponse = false;
+inkzone::SportsDataCache scoreChangeCache;
 inkzone::ActivityLevel currentActivity =
     inkzone::ActivityLevel::kNoGamesToday;
 
@@ -139,14 +143,44 @@ inkzone::ActivityLevel activityForScoreboard(
              : inkzone::ActivityLevel::kNoGamesToday;
 }
 
+inkzone::ProviderResponse fetchConfiguredLeagueScoreboard() {
+  const inkzone::League selectedLeague =
+      settings.favorite_leagues.empty()
+          ? inkzone::League::kNfl
+          : settings.favorite_leagues.front();
+
+  switch (selectedLeague) {
+    case inkzone::League::kNcaaFootball:
+      return inkzone::fetchEspnNcaaFootballScoreboard();
+
+    case inkzone::League::kNba:
+      return inkzone::fetchEspnNbaScoreboard();
+
+    case inkzone::League::kNcaaBasketball:
+      return inkzone::fetchEspnNcaaBasketballScoreboard();
+
+    case inkzone::League::kNhl:
+      return inkzone::fetchEspnNhlScoreboard();
+
+    case inkzone::League::kNfl:
+    case inkzone::League::kUnknown:
+    case inkzone::League::kMls:
+    case inkzone::League::kSoccer:
+      return inkzone::fetchEspnNflScoreboard();
+  }
+
+  return inkzone::fetchEspnNflScoreboard();
+}
+
 void printLiveNflScoreboard() {
-  Serial.println("Requesting live NFL scoreboard...");
+  Serial.println("Requesting selected league scoreboard...");
 
 inkzone::ProviderResponse response =
-    inkzone::fetchEspnNflScoreboard();
+    fetchConfiguredLeagueScoreboard();
+    std::vector<inkzone::ScoreChange> scoreChanges;
 
   Serial.printf(
-      "Live NFL result: %s\n",
+      "Selected league result: %s\n",
       inkzone::providerResultName(response.result));
 
   if (response.result != inkzone::ProviderResult::kSuccess) {
@@ -158,7 +192,7 @@ inkzone::ProviderResponse response =
     Serial.println("Using most recent valid NFL scoreboard...");
     response = cachedNflResponse;
   } else {
-    Serial.println("Using saved NFL scoreboard fallback...");
+    Serial.println("Using saved scoreboard fallback...");
 
     response =
         inkzone::parseEspnNflScoreboard(
@@ -170,9 +204,19 @@ inkzone::ProviderResponse response =
     }
   }
 } else {
+  inkzone::SportsDataSnapshot snapshot;
+snapshot.provider_name = "Selected ESPN Scoreboard";
+snapshot.updated_at_unix =
+    static_cast<int64_t>(time(nullptr));
+snapshot.games = response.games;
+
+scoreChanges =
+    scoreChangeCache.findScoreChanges(snapshot);
+
+scoreChangeCache.storeIfValid(snapshot);
   cachedNflResponse = response;
   hasCachedNflResponse = true;
-  Serial.println("Cached latest valid NFL scoreboard");
+  Serial.println("Cached latest valid scoreboard");
 }
 
 const std::string* favoriteTeamIds =
@@ -205,6 +249,21 @@ Serial.printf(
 Serial.printf(
     "Automatic screen: %s\n",
     inkzone::screenTypeName(screenDecision.type));
+    if (scoreChanges.empty() && !response.games.empty()) {
+  const inkzone::Game& game = response.games.front();
+
+  const inkzone::ScoreChange demoChange = {
+      game.id,
+      game.league,
+      game.home_team,
+      game.home_score,
+      game.home_score + 1,
+  };
+
+}
+    for (const inkzone::ScoreChange& scoreChange : scoreChanges) {
+  inkzone::renderSimulatorScoreAlert(scoreChange);
+}
     if (screenDecision.type ==
         inkzone::ScreenType::kUpcomingFavorite &&
     screenDecision.featured_game != nullptr) {
@@ -223,12 +282,12 @@ Serial.printf(
 }
 
   Serial.printf(
-      "Live NFL games received: %u\n",
+      "Scoreboard games received: %u\n",
       static_cast<unsigned int>(response.games.size()));
 
   for (const inkzone::Game& game : response.games) {
     Serial.printf(
-        "Live NFL game: %s %d at %s %d\n",
+        "Scoreboard game: %s %d at %s %d\n",
         game.away_team.abbreviation.c_str(),
         game.away_score,
         game.home_team.abbreviation.c_str(),
@@ -523,6 +582,54 @@ void printNbaScoreboard() {
   }
 }
 
+void printNcaaBasketballScoreboard() {
+  Serial.println("Requesting NCAA basketball scoreboard...");
+
+  const inkzone::ProviderResponse response =
+      inkzone::fetchEspnNcaaBasketballScoreboard();
+
+  Serial.printf(
+      "NCAA basketball result: %s\n",
+      inkzone::providerResultName(response.result));
+
+  Serial.printf(
+      "NCAA basketball diagnostic: %s\n",
+      response.diagnostic.c_str());
+
+  for (const inkzone::Game& game : response.games) {
+    Serial.printf(
+        "NCAA basketball game: %s %d at %s %d\n",
+        game.away_team.abbreviation.c_str(),
+        game.away_score,
+        game.home_team.abbreviation.c_str(),
+        game.home_score);
+  }
+}
+
+void printNhlScoreboard() {
+  Serial.println("Requesting NHL scoreboard...");
+
+  const inkzone::ProviderResponse response =
+      inkzone::fetchEspnNhlScoreboard();
+
+  Serial.printf(
+      "NHL result: %s\n",
+      inkzone::providerResultName(response.result));
+
+  Serial.printf(
+      "NHL diagnostic: %s\n",
+      response.diagnostic.c_str());
+
+  for (const inkzone::Game& game : response.games) {
+    Serial.printf(
+        "NHL game: %s %d at %s %d\n",
+        game.away_team.abbreviation.c_str(),
+        game.away_score,
+        game.home_team.abbreviation.c_str(),
+        game.home_score);
+  }
+}
+
 void setup() {
   Serial.begin(kSerialBaudRate);
   delay(500);
@@ -540,8 +647,6 @@ Serial.printf("Saved settings: %s\n",
               settingsLoaded ? "loaded" : "not found");
   connectToConfiguredWifi();
   printLiveNflScoreboard();
-  printNcaaFootballScoreboard();
-  printNbaScoreboard();
   lastNflUpdateMs = millis();
   selectStateFromSettings();
   printDeviceState();

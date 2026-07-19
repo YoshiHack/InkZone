@@ -5,6 +5,7 @@
 #include <string>
 
 #include "inkzone/sports_data_provider.h"
+#include "inkzone/data_cache.h"
 
 namespace inkzone {
 
@@ -25,4 +26,7 @@ void renderSimulatorIdleDashboard(
     const Game* nextFavoriteGame,
     int64_t nowUnix);
 
-}  // namespace inkzone
+void renderSimulatorScoreAlert(
+    const ScoreChange& scoreChange);
+
+} 

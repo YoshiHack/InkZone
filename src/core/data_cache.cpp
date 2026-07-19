@@ -10,7 +10,65 @@ bool hasValidGameIdentity(const Game& game) {
          !game.away_team.id.empty();
 }
 
-}  // namespace
+bool canAnnounceScore(GameStatus status) {
+  return status == GameStatus::kLive ||
+         status == GameStatus::kHalftime;
+}
+
+}
+
+std::vector<ScoreChange>
+SportsDataCache::findScoreChanges(
+    const SportsDataSnapshot& incoming) const {
+  std::vector<ScoreChange> changes;
+
+  if (!has_data_) {
+    return changes;
+  }
+
+  for (const Game& incomingGame : incoming.games) {
+    if (!canAnnounceScore(incomingGame.status)) {
+      continue;
+    }
+
+    const Game* previousGame = nullptr;
+
+    for (const Game& cachedGame : latest_.games) {
+      if (cachedGame.id == incomingGame.id) {
+        previousGame = &cachedGame;
+        break;
+      }
+    }
+
+    if (previousGame == nullptr) {
+      continue;
+    }
+
+    if (incomingGame.home_score >
+        previousGame->home_score) {
+      changes.push_back({
+          incomingGame.id,
+          incomingGame.league,
+          incomingGame.home_team,
+          previousGame->home_score,
+          incomingGame.home_score,
+      });
+    }
+
+    if (incomingGame.away_score >
+        previousGame->away_score) {
+      changes.push_back({
+          incomingGame.id,
+          incomingGame.league,
+          incomingGame.away_team,
+          previousGame->away_score,
+          incomingGame.away_score,
+      });
+    }
+  }
+
+  return changes;
+}
 
 bool SportsDataCache::storeIfValid(SportsDataSnapshot snapshot) {
   if (snapshot.provider_name.empty() || snapshot.updated_at_unix <= 0) {
@@ -42,4 +100,4 @@ const SportsDataSnapshot& SportsDataCache::latest() const {
   return latest_;
 }
 
-}  // namespace inkzone
+} 

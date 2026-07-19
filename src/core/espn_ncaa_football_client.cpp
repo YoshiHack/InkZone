@@ -11,7 +11,7 @@ namespace {
 
 constexpr char kNcaaFootballScoreboardUrl[] =
     "https://site.api.espn.com/apis/site/v2/sports/"
-    "football/college-football/scoreboard?limit=1";
+    "football/college-football/scoreboard?limit=5";
 
 }
 

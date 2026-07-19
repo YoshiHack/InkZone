@@ -52,9 +52,25 @@ uint16_t rgbToDisplayColor(
 }
 
 
-}  // namespace
+}  
 
-// Forward declaration so statusLabel can be used above.
+const char* leagueLabel(League league) {
+  switch (league) {
+    case League::kNfl:
+      return "NFL";
+    case League::kNcaaFootball:
+      return "NCAA FOOTBALL";
+    case League::kNba:
+      return "NBA";
+    case League::kNcaaBasketball:
+      return "NCAA BASKETBALL";
+    case League::kNhl:
+      return "NHL";
+    default:
+      return "SCORES";
+  }
+}
+
 const char* statusLabel(GameStatus status);
 
 void initializeSimulatorDisplay() {
@@ -117,7 +133,13 @@ void renderSimulatorScoreboard(
   display.setTextColor(ILI9341_WHITE);
   display.setTextSize(3);
   display.setCursor(10, 8);
-  display.print("NFL SCOREBOARD");
+  const League league =
+    response.games.empty()
+        ? League::kUnknown
+        : response.games.front().league;
+
+display.print(leagueLabel(league));
+display.print(" SCOREBOARD");
 
   int rowY = 50;
   size_t gamesDrawn = 0;
@@ -375,4 +397,49 @@ void renderSimulatorIdleDashboard(
   display.print(startTimeText);
 }
 
-}  // namespace inkzone
+void renderSimulatorScoreAlert(
+    const ScoreChange& scoreChange) {
+  const bool isGoal =
+      scoreChange.league == League::kNhl ||
+      scoreChange.league == League::kSoccer;
+
+  const uint16_t teamColor =
+      rgbToDisplayColor(
+          scoreChange.scoring_team.primary_color_rgb,
+          ILI9341_BLUE);
+
+  const char* alertText =
+      isGoal ? "GOAL!" : "SCORE UPDATE";
+
+  for (int flash = 0; flash < 2; ++flash) {
+    display.fillScreen(teamColor);
+    delay(180);
+
+    display.fillScreen(ILI9341_BLACK);
+    delay(120);
+  }
+
+  display.fillScreen(teamColor);
+
+  display.setTextColor(ILI9341_WHITE);
+  display.setTextSize(4);
+  display.setCursor(18, 42);
+  display.print(alertText);
+
+  display.setTextColor(ILI9341_BLACK);
+  display.setTextSize(4);
+  display.setCursor(34, 108);
+  display.print(
+      scoreChange.scoring_team.abbreviation.c_str());
+
+  display.setTextSize(3);
+  display.setCursor(34, 162);
+  display.printf(
+      "%d -> %d",
+      scoreChange.previous_score,
+      scoreChange.updated_score);
+
+  delay(1100);
+}
+
+} 

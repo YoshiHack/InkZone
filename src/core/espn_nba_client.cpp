@@ -11,9 +11,9 @@ namespace {
 
 constexpr char kNbaScoreboardUrl[] =
     "https://site.api.espn.com/apis/site/v2/sports/"
-    "basketball/nba/scoreboard?limit=1";
+    "basketball/nba/scoreboard?limit=5";
 
-}  // namespace
+}
 
 ProviderResponse fetchEspnNbaScoreboard() {
   ProviderResponse response;
