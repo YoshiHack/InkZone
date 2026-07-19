@@ -25,7 +25,7 @@ Inkzone has many features, including but not limited to;
 So far Inkzone has 2 pages (both screens also have scoring animations now too):
 
 ##### Page 1
-displays 5 upcoming games of the league you select (See ==Webpage==)
+displays 5 upcoming games of the league you select (See Webpage)
 
 <img src="images\page1.png" width="400">
  
@@ -45,7 +45,7 @@ The Webpage can let you change these items:
 - Favorite league
 - Favorite team abv
 - Update interval in seconds
-- Display controls (See ==Pages==)
+- Display controls (See Pages)
 
 ##### How to access it
-You can access the webpage via connecting to the hotspot it created (See ==Features==) and going to 192.168.0.1:8090 or if its connected to wifi <The Inkzone's IP>:8090
+You can access the webpage via connecting to the hotspot it created (See Features) and going to 192.168.0.1:8090 or if its connected to wifi <The Inkzone's IP>:8090
