@@ -25,11 +25,17 @@ Inkzone has many features, including but not limited to;
 So far Inkzone has 2 pages (both screens also have scoring animations now too):
 
 ##### Page 1
+<<<<<<< HEAD
 displays 5 upcoming games of the league you select (See ==Webpage==)
+=======
+displays 5 upcoming games
+
+>>>>>>> 379b375e68594b923254ef74ef9972a4e1e30211
 <img src="images\page1.png" width="400">
  
 ##### Page 2
 displays one singular game (The game will be the team you favorited in the webpage) and it will also display the date and time. 
+
 <img src="images\page2.png" width="400">
 
 ##### Auto and Manual modes
