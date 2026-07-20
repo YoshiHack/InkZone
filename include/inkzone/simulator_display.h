@@ -24,7 +24,9 @@ void renderSimulatorUpcomingGame(
 
 void renderSimulatorIdleDashboard(
     const Game* nextFavoriteGame,
-    int64_t nowUnix);
+    int64_t nowUnix,
+    const std::string* favoriteTeamIds,
+    size_t favoriteCount);
 
 void renderSimulatorScoreAlert(
     const ScoreChange& scoreChange);

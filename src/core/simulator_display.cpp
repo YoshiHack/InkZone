@@ -310,11 +310,11 @@ void renderSimulatorUpcomingGame(
 
     struct tm utcTime;
 
-    if (gmtime_r(&startTime, &utcTime) != nullptr) {
+    if (localtime_r(&startTime, &utcTime) != nullptr) {
       strftime(
           startTimeText,
           sizeof(startTimeText),
-          "%b %d, %H:%M UTC",
+          "%b %d, %I:%M %p",
           &utcTime);
     }
   }
@@ -327,7 +327,9 @@ void renderSimulatorUpcomingGame(
 
 void renderSimulatorIdleDashboard(
     const Game* nextFavoriteGame,
-    int64_t nowUnix) {
+    int64_t nowUnix,
+    const std::string* favoriteTeamIds,
+    size_t favoriteCount) {
   display.fillScreen(ILI9341_BLACK);
 
   display.fillRect(0, 0, display.width(), 40, ILI9341_BLUE);
@@ -337,63 +339,113 @@ void renderSimulatorIdleDashboard(
   display.print("INKZONE DASHBOARD");
 
   char currentTimeText[32] = "Time unavailable";
+
   if (nowUnix > 0) {
-    const time_t currentTime = static_cast<time_t>(nowUnix);
+    const time_t currentTime =
+        static_cast<time_t>(nowUnix);
     struct tm utcTime;
-    if (gmtime_r(&currentTime, &utcTime) != nullptr) {
-      strftime(currentTimeText, sizeof(currentTimeText),
-               "%a %b %d  %H:%M UTC", &utcTime);
+
+    if (localtime_r(&currentTime, &utcTime) != nullptr) {
+      strftime(
+          currentTimeText,
+          sizeof(currentTimeText),
+          "%a %b %d  %I:%M %p",
+          &utcTime);
     }
   }
 
   display.setTextColor(ILI9341_YELLOW);
   display.setTextSize(2);
-  display.setCursor(12, 64);
+  display.setCursor(12, 54);
   display.print(currentTimeText);
+
+  display.setTextColor(ILI9341_LIGHTGREY);
+  display.setTextSize(1);
+  display.setCursor(12, 82);
+  display.print("FAVORITES");
+
+  String favoritesText;
+
+  if (favoriteTeamIds == nullptr || favoriteCount == 0) {
+    favoritesText = "No teams selected";
+  } else {
+    const size_t visibleCount =
+        favoriteCount > 4 ? 4 : favoriteCount;
+
+    for (size_t index = 0;
+         index < visibleCount;
+         ++index) {
+      if (index > 0) {
+        favoritesText += ", ";
+      }
+
+      favoritesText += favoriteTeamIds[index].c_str();
+    }
+
+    if (favoriteCount > visibleCount) {
+      favoritesText += " +";
+    }
+  }
 
   display.setTextColor(ILI9341_WHITE);
   display.setTextSize(2);
-  display.setCursor(12, 108);
+  display.setCursor(12, 96);
+  display.print(favoritesText);
+
+  display.setTextColor(ILI9341_LIGHTGREY);
+  display.setTextSize(1);
+  display.setCursor(12, 126);
   display.print("NEXT FAVORITE GAME");
 
   if (nextFavoriteGame == nullptr) {
-    display.setTextColor(ILI9341_LIGHTGREY);
-    display.setCursor(12, 146);
-    display.print("No favorite team set");
+    display.setTextColor(ILI9341_WHITE);
+    display.setTextSize(2);
+    display.setCursor(12, 150);
+    display.print("No upcoming game");
     return;
   }
 
   display.fillRect(
-      8, 166, 8, 45,
-      rgbToDisplayColor(nextFavoriteGame->away_team.primary_color_rgb,
-                        ILI9341_DARKGREY));
+      8, 146, 8, 44,
+      rgbToDisplayColor(
+          nextFavoriteGame->away_team.primary_color_rgb,
+          ILI9341_DARKGREY));
 
   display.fillRect(
-      display.width() - 16, 166, 8, 45,
-      rgbToDisplayColor(nextFavoriteGame->home_team.primary_color_rgb,
-                        ILI9341_DARKGREY));
+      display.width() - 16, 146, 8, 44,
+      rgbToDisplayColor(
+          nextFavoriteGame->home_team.primary_color_rgb,
+          ILI9341_DARKGREY));
 
   display.setTextColor(ILI9341_WHITE);
   display.setTextSize(3);
-  display.setCursor(28, 176);
-  display.printf("%s @ %s",
-                 nextFavoriteGame->away_team.abbreviation.c_str(),
-                 nextFavoriteGame->home_team.abbreviation.c_str());
+  display.setCursor(28, 156);
+  display.printf(
+      "%s @ %s",
+      nextFavoriteGame->away_team.abbreviation.c_str(),
+      nextFavoriteGame->home_team.abbreviation.c_str());
 
   char startTimeText[32] = "Start time unavailable";
+
   if (nextFavoriteGame->scheduled_start_unix > 0) {
     const time_t startTime =
-        static_cast<time_t>(nextFavoriteGame->scheduled_start_unix);
+        static_cast<time_t>(
+            nextFavoriteGame->scheduled_start_unix);
+
     struct tm utcStartTime;
-    if (gmtime_r(&startTime, &utcStartTime) != nullptr) {
-      strftime(startTimeText, sizeof(startTimeText),
-               "%b %d, %H:%M UTC", &utcStartTime);
+
+    if (localtime_r(&startTime, &utcStartTime) != nullptr) {
+      strftime(
+          startTimeText,
+          sizeof(startTimeText),
+          "%b %d, %I:%M %p",
+          &utcStartTime);
     }
   }
 
   display.setTextColor(ILI9341_YELLOW);
   display.setTextSize(2);
-  display.setCursor(12, 216);
+  display.setCursor(12, 206);
   display.print(startTimeText);
 }
 

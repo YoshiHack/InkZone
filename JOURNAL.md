@@ -31,11 +31,12 @@ To start today i kept trying to fix the NCAA football error. Ok i finaly fixed i
 
 # July 19 : Kept working even more
 
-I started by working on NHL, then started working on adding a league selector to the webpage then removed all of the extra NFL names, worked on the readme a little, I started adding a score animation finished animation 
+I started by working on NHL, then started working on adding a league selector to the webpage then removed all of the extra NFL names, worked on the readme a little, I started adding a score animation finished animation also started working on more colors
 
-<img src="images\page1.png" width="400">
+<img src="images\image.png" width="400">
 
-**Total time spent: 5 hours**]
+**Total time spent: 3 hours**
+**Total time spent: 5 hours**
 
 # July 20 : Finishing up
 
@@ -43,4 +44,8 @@ I started by Making a gameday dashboard now all timezones are good and started g
 
 <img src="images\page3.png" width="400">
 
+<<<<<<< HEAD
 **Total time spent: 4 hours**
+=======
+**Total time spent: 4 hours**
+>>>>>>> 5e3a1565690c62191d02df34d77d00fa0cd808ab

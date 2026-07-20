@@ -7,9 +7,10 @@ constexpr uint32_t secondMs = 1000;
 constexpr uint32_t minuteMs = 60 * secondMs;
 constexpr uint32_t hourMs = 60 * minuteMs;
 
-}
+}  // namespace
 
-uint32_t refreshIntervalMs(ActivityLevel activity, uint8_t retry_attempt) {
+uint32_t refreshIntervalMs(ActivityLevel activity,
+                           uint8_t retry_attempt) {
   switch (activity) {
     case ActivityLevel::kLiveFavoriteGame:
       return 60 * secondMs;
@@ -42,9 +43,10 @@ uint32_t refreshIntervalMs(ActivityLevel activity, uint8_t retry_attempt) {
 
       return interval;
     }
+
+    default:
+      return 15 * minuteMs;
   }
-
-  return 15 * minuteMs;
 }
 
-}
+} 

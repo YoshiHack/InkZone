@@ -27,8 +27,19 @@ bool saveSettings(const Settings& settings) {
   preferences.putUChar(
       "league",
       static_cast<unsigned char>(settings.favorite_leagues.front()));
-  preferences.putString("team",
-                        settings.favorite_team_ids.front().c_str());
+  String teams;
+
+for (size_t index = 0;
+     index < settings.favorite_team_ids.size();
+     ++index) {
+  if (index > 0) {
+    teams += ",";
+  }
+
+  teams += settings.favorite_team_ids[index].c_str();
+}
+
+preferences.putString("teams", teams);
   preferences.putUInt("live_refresh",
                       settings.live_refresh_seconds);
   preferences.putUInt("idle_refresh",
@@ -54,8 +65,12 @@ bool loadSettings(Settings& settings) {
 
   const String timezone =
       preferences.getString("timezone", "UTC");
-  const String team =
-      preferences.getString("team", "");
+  String teams =
+    preferences.getString("teams", "");
+
+if (teams.isEmpty()) {
+  teams = preferences.getString("team", "");
+}
   const String wifiSsid =
     preferences.getString("wifi_ssid", "");
 const String wifiPassword =
@@ -74,9 +89,30 @@ settings.wifi_password = wifiPassword.c_str();
 
   settings.favorite_team_ids.clear();
 
+int startIndex = 0;
+
+while (startIndex < teams.length()) {
+  const int commaIndex =
+      teams.indexOf(',', startIndex);
+
+  String team =
+      commaIndex < 0
+          ? teams.substring(startIndex)
+          : teams.substring(startIndex, commaIndex);
+
+  team.trim();
+  team.toUpperCase();
+
   if (!team.isEmpty()) {
     settings.favorite_team_ids.push_back(team.c_str());
   }
+
+  if (commaIndex < 0) {
+    break;
+  }
+
+  startIndex = commaIndex + 1;
+}
 
   settings.live_refresh_seconds =
       preferences.getUInt("live_refresh", 60);

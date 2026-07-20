@@ -32,19 +32,25 @@ const char* settingsErrorName(SettingsError error) {
   switch (error) {
     case SettingsError::kNone:
       return "none";
+
     case SettingsError::kMissingTimezone:
       return "missing timezone";
+
     case SettingsError::kNoFavoriteLeagues:
       return "no favorite leagues";
+
     case SettingsError::kNoFavoriteTeams:
       return "no favorite teams";
+
     case SettingsError::kLiveRefreshOutOfRange:
       return "live refresh interval out of range";
+
     case SettingsError::kIdleRefreshOutOfRange:
       return "idle refresh interval out of range";
-  }
 
-  return "unknown";
+    default:
+      return "unknown";
+  }
 }
 
-}  // namespace inkzone
+}

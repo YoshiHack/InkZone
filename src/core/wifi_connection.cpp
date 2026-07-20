@@ -5,25 +5,29 @@
 
 namespace inkzone {
 
-WifiConnectResult connectToWifi(const char* networkName,
-                                const char* password,
-                                unsigned long timeoutMs) {
-  if (networkName == nullptr || networkName[0] == '\0') {
+WifiConnectResult connectToWifi(
+    const char* networkName,
+    const char* password,
+    unsigned long timeoutMs) {
+
+  if (networkName == nullptr ||
+      networkName[0] == '\0') {
     return WifiConnectResult::kInvalidNetwork;
   }
 
   WiFi.mode(WIFI_STA);
 
-  if (password == nullptr || password[0] == '\0') {
+  if (password == nullptr ||
+      password[0] == '\0') {
     WiFi.begin(networkName);
   } else {
     WiFi.begin(networkName, password);
   }
 
-  const unsigned long startedAtMs = millis();
+  unsigned long startTime = millis();
 
   while (WiFi.status() != WL_CONNECTED) {
-    if (millis() - startedAtMs >= timeoutMs) {
+    if (millis() - startTime >= timeoutMs) {
       return WifiConnectResult::kTimeout;
     }
 
@@ -34,20 +38,28 @@ WifiConnectResult connectToWifi(const char* networkName,
 }
 
 bool startSetupAccessPoint(const char* networkName) {
-  if (networkName == nullptr || networkName[0] == '\0') {
+  if (networkName == nullptr ||
+      networkName[0] == '\0') {
     return false;
   }
 
   WiFi.mode(WIFI_AP);
-  return WiFi.softAP(networkName);
+
+  if (WiFi.softAP(networkName)) {
+    return true;
+  }
+
+  return false;
 }
 
 const char* wifiConnectResultName(WifiConnectResult result) {
   switch (result) {
     case WifiConnectResult::kSuccess:
       return "success";
+
     case WifiConnectResult::kTimeout:
       return "timeout";
+
     case WifiConnectResult::kInvalidNetwork:
       return "invalid network";
   }
@@ -55,4 +67,4 @@ const char* wifiConnectResultName(WifiConnectResult result) {
   return "unknown";
 }
 
-}  // namespace inkzone
+}

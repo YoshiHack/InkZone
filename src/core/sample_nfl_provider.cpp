@@ -6,24 +6,36 @@ const char* SampleNflProvider::name() const {
   return "Sample NFL Provider";
 }
 
-ProviderResponse SampleNflProvider::fetchGames(League league,
-                                               int64_t start_unix,
-                                               int64_t end_unix) {
+ProviderResponse SampleNflProvider::fetchGames(
+    League league,
+    int64_t start_unix,
+    int64_t end_unix) {
+
   ProviderResponse response;
 
   if (league != League::kNfl) {
-    response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic = "Sample provider only supports the NFL";
+    response.result =
+        ProviderResult::kInvalidResponse;
+
+    response.diagnostic =
+        "Sample provider only supports the NFL";
+
     return response;
   }
 
-  if (start_unix <= 0 || end_unix < start_unix) {
-    response.result = ProviderResult::kInvalidResponse;
-    response.diagnostic = "Invalid requested time range";
+  if (start_unix <= 0 ||
+      end_unix < start_unix) {
+    response.result =
+        ProviderResult::kInvalidResponse;
+
+    response.diagnostic =
+        "Invalid requested time range";
+
     return response;
   }
 
   Game game;
+
   game.id = "sample-nfl-001";
   game.league = League::kNfl;
 
@@ -41,7 +53,10 @@ ProviderResponse SampleNflProvider::fetchGames(League league,
 
   game.away_score = 17;
   game.home_score = 14;
-  game.scheduled_start_unix = start_unix + 30 * 60;
+
+  game.scheduled_start_unix =
+      start_unix + 30 * 60;
+
   game.status = GameStatus::kLive;
   game.period = "3rd";
   game.clock = "08:42";
@@ -49,11 +64,17 @@ ProviderResponse SampleNflProvider::fetchGames(League league,
   game.broadcast_network = "Sample Network";
 
   response.games.push_back(game);
-  response.result = ProviderResult::kSuccess;
-  response.fetched_at_unix = start_unix;
-  response.diagnostic = "Loaded built-in sample data";
+
+  response.result =
+      ProviderResult::kSuccess;
+
+  response.fetched_at_unix =
+      start_unix;
+
+  response.diagnostic =
+      "Loaded built-in sample data";
 
   return response;
 }
 
-}  // namespace inkzone
+}

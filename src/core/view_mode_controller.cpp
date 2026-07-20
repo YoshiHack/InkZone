@@ -3,33 +3,45 @@
 namespace inkzone {
 
 ViewModeController::ViewModeController(uint32_t auto_return_ms)
-    : auto_return_ms_(auto_return_ms) {}
+    : auto_return_ms_(auto_return_ms) {
+}
 
-void ViewModeController::next(size_t view_count, uint32_t now_ms) {
+void ViewModeController::next(size_t view_count,
+                              uint32_t now_ms) {
   if (view_count == 0) {
     return;
   }
 
-  selected_view_ = (selected_view_ + 1) % view_count;
+  selected_view_ =
+      (selected_view_ + 1) % view_count;
+
   beginManualMode(now_ms);
 }
 
-void ViewModeController::previous(size_t view_count, uint32_t now_ms) {
+void ViewModeController::previous(size_t view_count,
+                                  uint32_t now_ms) {
   if (view_count == 0) {
     return;
   }
 
-  selected_view_ = selected_view_ == 0 ? view_count - 1 : selected_view_ - 1;
+  if (selected_view_ == 0) {
+    selected_view_ = view_count - 1;
+  } else {
+    selected_view_--;
+  }
+
   beginManualMode(now_ms);
 }
 
-void ViewModeController::select(size_t view_index, size_t view_count,
+void ViewModeController::select(size_t view_index,
+                                size_t view_count,
                                 uint32_t now_ms) {
   if (view_count == 0) {
     return;
   }
 
   selected_view_ = view_index % view_count;
+
   beginManualMode(now_ms);
 }
 
@@ -38,7 +50,8 @@ void ViewModeController::enterAutomaticMode() {
 }
 
 void ViewModeController::update(uint32_t now_ms) {
-  if (!automatic_ && now_ms - last_interaction_ms_ >= auto_return_ms_) {
+  if (!automatic_ &&
+      now_ms - last_interaction_ms_ >= auto_return_ms_) {
     enterAutomaticMode();
   }
 }
@@ -56,4 +69,4 @@ void ViewModeController::beginManualMode(uint32_t now_ms) {
   last_interaction_ms_ = now_ms;
 }
 
-}  // namespace inkzone
+}

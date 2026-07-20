@@ -11,9 +11,9 @@ namespace {
 
 constexpr char kNcaaBasketballScoreboardUrl[] =
     "https://site.api.espn.com/apis/site/v2/sports/"
-    "basketball/mens-college-basketball/scoreboard?limit=1";
+    "basketball/mens-college-basketball/scoreboard?limit=5";
 
-}  // namespace
+}
 
 ProviderResponse fetchEspnNcaaBasketballScoreboard() {
   ProviderResponse response;

@@ -126,12 +126,12 @@ const char kSettingsPage[] = R"html(
         </option>
         <option value="nhl" %LEAGUE_NHL%>NHL</option>
       </select>
-      <label for="team">Favorite team abbreviation</label>
+      <label for="team">Favorite team abbreviations</label>
       <input id="team"
              name="team"
-             maxlength="5"
+             maxlength="80"
              value="%TEAM%"
-             placeholder="Example: BUF">
+             placeholder="Example: NY, TOR, BUF">
 
       <label for="interval">Update interval in seconds</label>
       <input id="interval"
@@ -226,7 +226,7 @@ String buildWiFiNetworkOptions(const std::string& selectedSsid) {
   return options;
 }
 
-}  // namespace
+}
 
 SettingsWebServer::SettingsWebServer(Settings& settings,
                                      unsigned short port)
@@ -310,19 +310,23 @@ page.replace(
     "%LEAGUE_NCAA_BASKETBALL%",
     selectedLeague == League::kNcaaBasketball ? "selected" : "");
 
-page.replace(
-    "%LEAGUE_NHL%",
-    selectedLeague == League::kNhl ? "selected" : "");
-  const char* team =
-      settings_.favorite_team_ids.empty()
-          ? ""
-          : settings_.favorite_team_ids.front().c_str();
+String teams;
+
+for (size_t index = 0;
+     index < settings_.favorite_team_ids.size();
+     ++index) {
+  if (index > 0) {
+    teams += ", ";
+  }
+
+  teams += settings_.favorite_team_ids[index].c_str();
+}
 
   page.replace("%WIFI_SSID%", settings_.wifi_ssid.c_str()); 
   page.replace(
     "%WIFI_NETWORK_OPTIONS%",
     buildWiFiNetworkOptions(settings_.wifi_ssid));       
-  page.replace("%TEAM%", team);
+  page.replace("%TEAM%", teams);
   page.replace(
       "%INTERVAL%",
       String(settings_.live_refresh_seconds));
@@ -379,9 +383,29 @@ if (league == "ncaa_football") {
 
   settings_.favorite_team_ids.clear();
 
-  if (!team.isEmpty()) {
-    settings_.favorite_team_ids.push_back(team.c_str());
+int startIndex = 0;
+
+while (startIndex < team.length()) {
+  const int commaIndex =
+      team.indexOf(',', startIndex);
+
+  String teamId =
+      commaIndex < 0
+          ? team.substring(startIndex)
+          : team.substring(startIndex, commaIndex);
+
+  teamId.trim();
+
+  if (!teamId.isEmpty()) {
+    settings_.favorite_team_ids.push_back(teamId.c_str());
   }
+
+  if (commaIndex < 0) {
+    break;
+  }
+
+  startIndex = commaIndex + 1;
+}
 
   settings_.live_refresh_seconds = interval;
 

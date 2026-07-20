@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <time.h>
+#include <cstdlib>
 
 #include "inkzone/device_status.h"
 #include "inkzone/settings.h"
@@ -272,8 +273,10 @@ Serial.printf(
 } else if (screenDecision.type ==
            inkzone::ScreenType::kIdleDashboard) {
   inkzone::renderSimulatorIdleDashboard(
-      findNextFavoriteGame(),
-      nowUnix);
+    findNextFavoriteGame(),
+    nowUnix,
+    favoriteTeamIds,
+    settings.favorite_team_ids.size());
 } else {
   inkzone::renderSimulatorScoreboard(
       response,
@@ -328,7 +331,22 @@ Serial.printf("Parsed start time: %lld\n",
 bool synchronizeClock() {
   Serial.println("Synchronizing clock...");
 
-  configTime(0, 0, "pool.ntp.org");
+  const char* timezoneRule = "UTC0";
+
+if (settings.timezone == "America/New_York") {
+  timezoneRule = "EST5EDT,M3.2.0/2,M11.1.0/2";
+} else if (settings.timezone == "America/Chicago") {
+  timezoneRule = "CST6CDT,M3.2.0/2,M11.1.0/2";
+} else if (settings.timezone == "America/Denver") {
+  timezoneRule = "MST7MDT,M3.2.0/2,M11.1.0/2";
+} else if (settings.timezone == "America/Los_Angeles") {
+  timezoneRule = "PST8PDT,M3.2.0/2,M11.1.0/2";
+}
+
+setenv("TZ", timezoneRule, 1);
+tzset();
+
+configTime(0, 0, "pool.ntp.org");
 
   const unsigned long startedMs = millis();
   constexpr unsigned long kTimeSyncTimeoutMs = 10000;
@@ -467,8 +485,10 @@ void renderManualView() {
 
   if (selectedView == 2) {
     inkzone::renderSimulatorIdleDashboard(
-        nextGame,
-        static_cast<int64_t>(time(nullptr)));
+    nextGame,
+    static_cast<int64_t>(time(nullptr)),
+    favoriteTeamIds,
+    settings.favorite_team_ids.size());
     inkzone::renderSimulatorModeLabel("MANUAL");
     return;
   }

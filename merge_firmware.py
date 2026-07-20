@@ -5,26 +5,40 @@ Import("env")
 from os.path import join
 
 
-def merge_firmware(source, target, env):
-    build_dir = env.subst("$BUILD_DIR")
-    framework_dir = env.PioPlatform().get_package_dir(
+def mergeFirmware(source, target, env):
+    buildDir = env.subst("$BUILD_DIR")
+
+    frameworkDir = env.PioPlatform().get_package_dir(
         "framework-arduinoespressif32"
     )
-    python = env.subst("$PYTHONEXE")
+
+    pythonPath = env.subst("$PYTHONEXE")
     uploader = env.subst("$UPLOADER")
-    output = join(build_dir, "firmware-merged.bin")
-    bootloader = join(build_dir, "bootloader.bin")
-    partitions = join(build_dir, "partitions.bin")
-    boot_app0 = join(framework_dir, "tools", "partitions", "boot_app0.bin")
-    firmware = join(build_dir, "firmware.bin")
+
+    outputFile = join(buildDir, "firmware-merged.bin")
+    bootloader = join(buildDir, "bootloader.bin")
+    partitions = join(buildDir, "partitions.bin")
+    firmware = join(buildDir, "firmware.bin")
+
+    bootApp = join(
+        frameworkDir,
+        "tools",
+        "partitions",
+        "boot_app0.bin"
+    )
 
     command = (
-        f'"{python}" "{uploader}" --chip esp32 merge-bin '
-        f'-o "{output}" --flash-mode dio --flash-size 4MB '
-        f'0x1000 "{bootloader}" 0x8000 "{partitions}" '
-        f'0xe000 "{boot_app0}" 0x10000 "{firmware}"'
+        f'"{pythonPath}" "{uploader}" --chip esp32 merge-bin '
+        f'-o "{outputFile}" --flash-mode dio --flash-size 4MB '
+        f'0x1000 "{bootloader}" '
+        f'0x8000 "{partitions}" '
+        f'0xe000 "{bootApp}" '
+        f'0x10000 "{firmware}"'
     )
+
     env.Execute(command)
 
 
-env.AddPostAction("$BUILD_DIR/" + "$" + "{PROGNAME}.bin", merge_firmware)
+firmwarePath = "$BUILD_DIR/${PROGNAME}.bin"
+
+env.AddPostAction(firmwarePath, mergeFirmware)

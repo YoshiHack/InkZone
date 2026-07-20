@@ -18,9 +18,10 @@ const char* providerResultName(ProviderResult result) {
 
     case ProviderResult::kRateLimited:
       return "rate limited";
-  }
 
-  return "unknown";
+    default:
+      return "unknown";
+  }
 }
 
-}  // namespace inkzone
+}

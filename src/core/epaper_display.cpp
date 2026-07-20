@@ -81,4 +81,4 @@ void renderEpaperScoreboard(
   } while (display.nextPage());
 }
 
-}  // namespace inkzone
+} 

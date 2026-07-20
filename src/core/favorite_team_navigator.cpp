@@ -29,7 +29,9 @@ bool FavoriteTeamNavigator::next() {
     return false;
   }
 
-  current_index_ = (current_index_ + 1) % team_count_;
+  current_index_ =
+      (current_index_ + 1) % team_count_;
+
   return true;
 }
 
@@ -38,17 +40,26 @@ bool FavoriteTeamNavigator::previous() {
     return false;
   }
 
-  current_index_ =
-      current_index_ == 0 ? team_count_ - 1 : current_index_ - 1;
+  if (current_index_ == 0) {
+    current_index_ = team_count_ - 1;
+  } else {
+    current_index_--;
+  }
+
   return true;
 }
 
 bool FavoriteTeamNavigator::select(uint8_t index) {
-  if (index >= team_count_ || index == current_index_) {
+  if (index >= team_count_) {
+    return false;
+  }
+
+  if (index == current_index_) {
     return false;
   }
 
   current_index_ = index;
+
   return true;
 }
 
