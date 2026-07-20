@@ -35,7 +35,6 @@ I started by working on NHL, then started working on adding a league selector to
 
 <img src="images\image.png" width="400">
 
-**Total time spent: 3 hours**
 **Total time spent: 5 hours**
 
 # July 20 : Finishing up
@@ -44,8 +43,4 @@ I started by Making a gameday dashboard now all timezones are good and started g
 
 <img src="images\page3.png" width="400">
 
-<<<<<<< HEAD
-**Total time spent: 4 hours**
-=======
-**Total time spent: 4 hours**
->>>>>>> 5e3a1565690c62191d02df34d77d00fa0cd808ab
+**Total time spent: 5 hours**
