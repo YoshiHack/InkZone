@@ -1,12 +1,5 @@
 Category,Item,Description,Quantity,Unit Cost USD,Extended Cost USD,Status,Notes
 Display,Waveshare 7.3-inch e-Paper HAT (E) with driver HAT,800x480 E Ink Spectra 6 color display plus required SPI driver board,1,79.99,79.99,Planned,Use the driver-HAT bundle; raw panels must not connect directly to the ESP32.
 Controller,ESP32 DevKit V1,Wi-Fi microcontroller development board,1,10.00,10.00,Planned,Choose a board with enough accessible GPIO pins for SPI and buttons.
-Power,USB-C 5V wall adapter,5V USB supply rated at 1A or higher,1,10.00,10.00,Planned,E-paper draws its main power during refresh.
-Power,USB-C cable,USB-C power cable for the wall adapter and ESP32,1,5.00,5.00,Planned,Length depends on final mounting location.
-Controls,Momentary push buttons,Previous Select and Next buttons,3,0.50,1.50,Planned,Panel-mount or PCB buttons depending on enclosure design.
 Wiring,Hook-up wire and Dupont connectors,3.3V GND SPI and button wiring,1,8.00,8.00,Planned,Use short SPI wiring where possible.
-Prototype,Perfboard headers and standoffs,Secure the ESP32 driver board and connectors during prototyping,1,6.00,6.00,Planned,May be replaced by a custom PCB later.
-Enclosure,3D-print filament or enclosure material,Front bezel rear compartment removable stand and wall mount,1,15.00,15.00,Planned,Estimate for prototype material only.
-Hardware,Screws inserts and rubber feet,Assembly and desk stability hardware,1,6.00,6.00,Planned,Exact sizes depend on enclosure measurements.
-Optional,USB-C breakout board,Optional only if adding a custom USB-C port to the enclosure or PCB,1,4.00,4.00,Optional,Verify CC-pin configuration before using a custom USB-C power input.
-Total,Estimated prototype total,,,144.49,144.49,Estimate,Excludes shipping tax tools and optional future custom PCB costs.
+Total,Estimated total,,,97.99,97.99,Estimate,Excludes shipping and tax.
