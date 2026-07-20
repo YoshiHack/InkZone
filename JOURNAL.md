@@ -35,4 +35,12 @@ I started by working on NHL, then started working on adding a league selector to
 
 <img src="images\page1.png" width="400">
 
-**Total time spent: 5 hours**](https://github.com/YoshiHack/InkZone/releases/tag/v1.1)
+**Total time spent: 5 hours**]
+
+# July 20 : Finishing up
+
+I started by Making a gameday dashboard now all timezones are good and started getting it ready for official launch
+
+<img src="images\page3.png" width="400">
+
+**Total time spent: 4 hours**
