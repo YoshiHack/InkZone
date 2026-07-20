@@ -35,4 +35,4 @@ I started by working on NHL, then started working on adding a league selector to
 
 <img src="images\page1.png" width="400">
 
-**Total time spent: 5 hours**
+**Total time spent: 5 hours**](https://github.com/YoshiHack/InkZone/releases/tag/v1.1)
