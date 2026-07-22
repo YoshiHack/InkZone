@@ -2,6 +2,8 @@
 
 ## InkZone is a Wi-Fi e-paper sports display that displays information like Score, and Time
 
+### Access the demo at: https://wokwi.com/projects/470194904712457217
+
 ### What you can display 
 You can display sports information like Upcoming dates, times even live scores. So far you can view these leagues:
 
